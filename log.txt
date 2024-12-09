@@ -1,0 +1,82 @@
+User(
+	id=10......56,
+	is_self=True,
+	contact=True,
+	mutual_contact=True,
+	deleted=False,
+	bot=False,
+	bot_chat_history=False,
+	bot_nochats=False,
+	verified=False,
+	restricted=False,
+	min=False,
+	bot_inline_geo=False,
+	support=False,
+	scam=False,
+	apply_min_photo=True,
+	fake=False,
+	bot_attach_menu=False,
+	premium=False,
+	attach_menu_enabled=False,
+	bot_can_edit=False,
+	close_friend=False,
+	stories_hidden=False,
+	stories_unavailable=True,
+	contact_require_premium=False,
+	bot_business=False,
+	bot_has_main_app=False,
+	access_hash=5593825813601890103,
+	first_name='Валерий',
+	last_name='Ж',
+	username='Va1errCa',
+	phone='796.......6',
+	photo=UserProfilePhoto(
+		photo_id=43857.........38793,
+		dc_id=2,
+		has_video=False,
+		personal=False,
+		stripped_thumb=b'\x01\x08\x08\x8b\xcf%\x80\xc9\xc7\xb1\xa2\x8a(h\x0f'
+	),
+	status=UserStatusOffline(
+		was_online=datetime.datetime(2024, 12, 9, 0, 26, 20, tzinfo=datetime.timezone.utc)
+	),
+	bot_info_version=None,
+	restriction_reason=[
+	],
+	bot_inline_placeholder=None,
+	lang_code=None,
+	emoji_status=None,
+	usernames=[
+	],
+	stories_max_id=None,
+	color=None,
+	profile_color=None,
+	bot_active_users=None
+)
+Va1errCa
+796........6
+Telegram has ID 777000
+Data Science Chat has ID -1001066772787
+Simulative Chat has ID -1001511722131
+Data Science с Глебом Михайловым has ID -1001693354066
+better data community has ID -1001897390401
+TechInsider has ID -1001067712602
+WEB Парсинг на Python has ID -1001676962097
+Data Science | Machinelearning [ru] has ID -1001121902388
+About Python [ru] has ID -1001254235163
+Код Дурова has ID -1001043793945
+А/Б-тесты с Глебом Михайловым has ID -1001975141771
+Machine learning Interview has ID -1001713271750
+Борис опять has ID -1001178238337
+karpov.courses: чат has ID -1001173846440
+Python/ django has ID -1001119855053
+Data Secrets | Карьера has ID -1002182541317
+Наука has ID -1001261982074
+Data Secrets has ID -1001720833502
+Machinelearning has ID -1001114591086
+Big Data AI has ID -1001684696497
+Анализ данных (Data analysis) has ID -1001684146975
+Машинное обучение RU has ID -1001262100203
+Поколение Python 🐍 has ID -1001562673976
+Data Portal | Data Science & Машиннное обучение has ID -1002177572398
+LEFT JOIN has ID -1001407735984
