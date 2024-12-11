@@ -10,7 +10,7 @@ the settings module
 # you can get them on the page: https://my.telegram.org/auth
 
 import environ
-
+import configparser
 
 # Getting environment variables
 env = environ.Env()
@@ -19,3 +19,6 @@ environ.Env.read_env()
 # Hidden API request parameters
 API_ID = env('api_id', int)
 API_HASH = env('api_hash', str)
+
+config = configparser.ConfigParser()
+config.read('config.ini')
