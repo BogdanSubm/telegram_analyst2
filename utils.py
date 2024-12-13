@@ -11,14 +11,19 @@ from pyrogram import Client, emoji, filters
 
 from datetime import datetime, date
 
-from config import config, API_ID, API_HASH
-from pgdb import Database
+# from config import config, API_ID, API_HASH
+from config_py import settings
+from pgdb import Database, Rows
 
-DB_HOST = config['Database']['HOST']
-DB_PORT = int(config['Database']['PORT'])
-DB_NAME = config['Database']['NAME']
-DB_USER = config['Database']['USER']
-DB_PASS = config['Database']['PASS']
+from config_py import settings
+
+from faker import Faker
+
+
+def generate_fake_data(count: int) -> Rows :
+    fake = Faker('ru_RU')
+    fake_rows = ((str(_), fake.company()[0:25]) for _ in range(1, count+1))
+    return fake_rows
 
 
 def _update_birthdate() -> int :
@@ -28,22 +33,58 @@ def _update_birthdate() -> int :
     :return: int, True - successfully, False - unsuccessfully
     '''
 
-    db = Database( host=DB_HOST,
-                   port=DB_PORT,
-                   dbname=DB_NAME,
-                   user=DB_USER,
-                   password=DB_PASS
-                   )
+    db = Database(settings.database_connection)
 
-    db.post('select * from channels')
+    # db.post('select * from channels')
+    #
+    # pass
+    result = db.read_rows(table_name='channel',
+                          condition_statement='name >= \'Data\'',
+                          limit=2)
 
-    pass
+    if result.is_successful :
+        print(result.value)
+
+
+    result = db.create_table(table_name='new_table',
+                             columns_statement='post_id VARCHAR(10) UNIQUE, post_name VARCHAR(25)',
+                             overwrite=True)
+
+    print(result.is_successful)
+
+
+    # if result.is_successful:
+    #     print('A new table has been creating successfully.')
+    #
+    # result = db.search_table('new_table')
+
+    # if result.is_successful:
+    #     print('A new table has been creating successfully.')
+
+
+    data = tuple(generate_fake_data(25))
+    res = db.insert_rows(table_name='new_table', values=data)
+    print(res.is_successful)
+    print(res.value)
+
+    # insert_query = '''
+    #     INSERT INTO new_table (post_id, post_name) VALUES (5, %s)
+    #     ON CONFLICT (post_id) DO UPDATE
+    #     SET post_name = EXCLUDED.post_name;
+    #     '''
+    #
+    #
+    # print(db.run_query(query=insert_query, params=('TEST',)).is_successful)
+
+
+    db.close_connection()
+    return True
 
 
 
 if __name__ == '__main__':
 
-    if _update_birthdate(db=db):
+    if _update_birthdate():
         print('done... :) !')
     else:
         print('damn... :(')

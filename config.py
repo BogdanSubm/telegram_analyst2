@@ -12,6 +12,7 @@ the settings module
 import environ
 import configparser
 
+
 # Getting environment variables
 env = environ.Env()
 environ.Env.read_env()

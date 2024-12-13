@@ -1,3 +1,5 @@
 .venv
 .env
-test_tg.session
+.env1
+config.json
+*.session

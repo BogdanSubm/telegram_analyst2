@@ -2,134 +2,142 @@
 
 import psycopg2
 from psycopg2 import extensions
+from dataclasses import dataclass
 
-Connection_type = psycopg2.extensions.connection
-Query_return_type = tuple[bool, tuple | int | None]
+from config_py import DBConnectionSettings
+
+# Type's hints
+Row = tuple
+Rows = tuple[Row]
+ConnectionType = psycopg2.extensions.connection
+
+@dataclass(slots=True, frozen=True)
+class DBQueryResult :
+    is_successful: bool    # this is the success flag
+    value: tuple | int | None    # received data
 
 
 class Database :
-    def __init__(self, host, port, dbname, user, password) :
+    def __init__(self, db_connect_set: DBConnectionSettings) :
         ''' Constructor '''
-        self.host = host
-        self.port = port
-        self.dbname = dbname
-        self.user = user
-        self.password = password
-
+        self.db_connect_set = db_connect_set
         try :
-            self.connect: Connection_type = psycopg2.connect(
-                host=self.host,
-                port=self.port,
-                dbname=self.dbname,
-                user=self.user,
-                password=self.password
+            self.connect: ConnectionType = psycopg2.connect(
+                **db_connect_set.model_dump()
             )
-            # self.cursor = self.connect.cursor()
-            print("Successfully connected...")
+            print("Data base Successfully connected.")
         except Exception as e :
             print(f"An error occurred while connecting: {e}")
 
-    def _execute(self, query: str, params: tuple = (), many: bool = False) -> Query_return_type :
+    def run_query(self, query: str, params: tuple = (), several: bool = False) -> DBQueryResult :
         ''' Main method '''
         try :
             with self.connect:
                 with self.connect.cursor() as cursor :
-                    if many :
+                    if several :
                         cursor.executemany(query, params)
                     else :
                         cursor.execute(query, params)
 
                     # We return the data if the request suggested it
-                    if cursor.description:
-                        return True, cursor.fetchall()
+                    if cursor.description :
+                        return DBQueryResult(True, cursor.fetchall())
 
                     # In other cases, we return the number of affected rows
-                    return True, cursor.rowcount
+                    return DBQueryResult(True, cursor.rowcount)
 
         except Exception as e :
             print(f"An error occurred while executing the request: {e}")
-            return False, None
+            return DBQueryResult(False, None)
 
 
-    def query(self, query: str, params: tuple = (), many: bool = False) -> Query_return_type :
-        ''' А simple query '''
-        return self._execute(query, params, many)
+    def read_rows(self,
+                  table_name: str,
+                  columns_statement: str = '*',
+                  condition_statement='',
+                  limit: int = 0) -> DBQueryResult :
+        if table_name :
+            query = f'SELECT {columns_statement} FROM {table_name}'
+            if condition_statement :
+                query += f' WHERE {condition_statement}'
+            if limit > 0 :
+                query += f' LIMIT {limit}'
+            return self.run_query(query)
+        return DBQueryResult(False, None)
 
 
-    def read_rows(self, table_name: str, query: str, columns: list = ['*'], ) -> tuple :
-        query = f'SELECT {", ".join(columns)} FROM {table_name}'
-        return
+    def search_table(self, table_name: str) -> bool :
+        ''' Table search '''
+        if table_name :
+            query = (f'SELECT table_name FROM information_schema.tables '
+                    f'WHERE table_schema=\'public\' AND table_type=\'BASE TABLE\' '
+                    f'AND table_name = \'{table_name}\'')
+            res = self.run_query(query)
+            if res.is_successful and len(res.value) != 0 :
+                return True
+        return False
 
-    #
-    # def read_many(self, query: str, params: tuple = ()) -> tuple:
-    #
-    #     self._execute(query, params=(), many=False)
-    #     try :
-    #         self.cursor.execute(query, params)
-    #         # We return the data if the request suggested it
-    #         if self.cursor.description :
-    #             return self.cursor.fetchall()
-    #
-    #         # In other cases, we return the number of affected rows
-    #         return self.cursor.rowcount
-    #     except Exception as e :
-    #         print(f"An error occurred while executing the request: {e}")
-    #
-    # def commit(self) :
-    #     """Фиксация изменений в базе данных"""
-    #     try :
-    #         self.connect.commit()
-    #         print("Изменения зафиксированы.")
-    #     except Exception as e :
-    #         print(f"Произошла ошибка при фиксации изменений: {e}")
-    #
-    # def create_table(self, table_name, columns) :
-    #     """Создание новой таблицы."""
-    #     query = f"CREATE TABLE IF NOT EXISTS {table_name} ({columns});"
-    #     self.execute_query(query)
-    #     self.commit()
-    #
-    # def insert_row(self, table_name, values) :
-    #     """Вставка одной строки в таблицу."""
-    #     placeholders = ', '.join(['%s'] * len(values))
-    #     query = f"INSERT INTO {table_name} VALUES ({placeholders})"
-    #     self.execute_query(query, values)
-    #     self.commit()
-    #
-    # def update_data(self, table_name, set_values, condition) :
-    #     """Обновление данных в таблице."""
-    #     query = f"UPDATE {table_name} SET {set_values} WHERE {condition}"
-    #     self.execute_query(query)
-    #     self.commit()
-    #
-    # def delete_rows(self, table_name, condition) :
-    #     """Удаление строк из таблицы."""
-    #     query = f"DELETE FROM {table_name} WHERE {condition}"
-    #     self.execute_query(query)
-    #     self.commit()
-    #
-    #
-    #
-    # def count_rows(self, table_name):
-    #     """Получение количества строк в таблице."""
-    #     query = f"SELECT COUNT(*) FROM {table_name}"
-    #     result = self.execute_query(query)
-    #     return result[0][0]
-    #
-    # def select_by_condition(self, table_name, columns='*', condition=''):
-    #     """Выборка данных из таблицы по условию."""
-    #     query = f"SELECT {columns} FROM {table_name}"
-    #     if condition:
-    #         query += f" WHERE {condition}"
-    #     result = self.execute_query(query)
-    #     return result
-    #
-    # def generate_report(self, table_name, column, aggregation_function='SUM'):
-    #     """Генерация отчета по указанному столбцу."""
-    #     query = f"SELECT {aggregation_function}({column}) FROM {table_name}"
-    #     result = self.execute_query(query)
-    #     return result[0][0]
-    #
+
+    def create_table(self,
+                     table_name: str,
+                     columns_statement: str,
+                     overwrite: bool = False) -> DBQueryResult :
+        ''' Creating a new table '''
+        if table_name and columns_statement :
+            if self.search_table(table_name) :
+                if overwrite :
+                    query = f'DROP TABLE {table_name}'
+                    if not self.run_query(query).is_successful :
+                        # print(f'The already existing table {table_name} has not been deleted.')
+                        return DBQueryResult(False, None)
+                    # print(f'The already existing table {table_name} has been deleted.')
+                else:
+                    # print(f'Error, table {table_name} is already there.')
+                    return DBQueryResult(False, None)
+            query = f'CREATE TABLE {table_name} ({columns_statement})'
+            return self.run_query(query)
+        else :
+            return DBQueryResult(False, None)
+
+
+    def insert_row(self, table_name: str, values: Row) -> DBQueryResult:
+        ''' Inserting a single row into a table. '''
+        if table_name and len(values) > 0 :
+            placeholders = ', '.join(['%s'] * len(values))
+            query = f"INSERT INTO {table_name} VALUES ({placeholders})"
+            return self.run_query(query, params=values)
+        return DBQueryResult(False, 0)
+
+
+    def insert_rows(self, table_name: str, values: Rows) -> DBQueryResult:
+        ''' Inserting multiple rows into a table. '''
+        if table_name and len(values) > 0 and len(values[0]) > 0 :
+            placeholders = ', '.join(['%s'] * len(values[0]))
+            query = f"INSERT INTO {table_name} VALUES ({placeholders})"
+            return self.run_query(query, params=values, several=True)
+        return DBQueryResult(False, 0)
+
+
+    def update_data(self, table_name, set_values, condition) :
+        """Обновление данных в таблице."""
+        query = f"UPDATE {table_name} SET {set_values} WHERE {condition}"
+        self.execute_query(query)
+        self.commit()
+
+
+    def delete_rows(self, table_name, condition) :
+        """Удаление строк из таблицы."""
+        query = f"DELETE FROM {table_name} WHERE {condition}"
+        self.execute_query(query)
+        self.commit()
+
+
+    def count_rows(self, table_name):
+        """Получение количества строк в таблице."""
+        query = f"SELECT COUNT(*) FROM {table_name}"
+        result = self.execute_query(query)
+        return result[0][0]
+
 
     def close_connection(self) :
         ''' Closing the database connection '''
