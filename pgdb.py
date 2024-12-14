@@ -1,4 +1,19 @@
 # A class for working with a database
+#
+#   Class name: Database
+#   Methods:
+#       run_query(table_name, params, several) - main method
+#       read_rows(table_name, columns_statement, condition_statement, limit)
+#       search_table(table_name)
+#       create_table(table_name, columns_statement, overwrite)
+#       insert_rows(table_name, values)
+#       update_data(table_name, set_statement, condition_statement)
+#       delete_rows(table_name, condition_statement)
+#       count_rows(table_name)
+#       close_connection()
+#
+# >>>  Usage examples in the <pgdb_example.py> module
+#
 
 import psycopg2
 from psycopg2 import extensions
@@ -11,6 +26,7 @@ Row = tuple
 Rows = tuple[Row]
 ConnectionType = psycopg2.extensions.connection
 
+# The data structure returned by most methods
 @dataclass(slots=True, frozen=True)
 class DBQueryResult :
     is_successful: bool    # this is the success flag
@@ -25,9 +41,13 @@ class Database :
             self.connect: ConnectionType = psycopg2.connect(
                 **db_connect_set.model_dump()
             )
-            print("Data base Successfully connected.")
+            print("Data base successfully connected.")
+            self.is_connected = True
+
         except Exception as e :
             print(f"An error occurred while connecting: {e}")
+            self.is_connected = False
+
 
     def run_query(self, query: str, params: tuple = (), several: bool = False) -> DBQueryResult :
         ''' Main method '''
@@ -56,6 +76,7 @@ class Database :
                   columns_statement: str = '*',
                   condition_statement='',
                   limit: int = 0) -> DBQueryResult :
+        ''' A simple line reader '''
         if table_name :
             query = f'SELECT {columns_statement} FROM {table_name}'
             if condition_statement :
@@ -100,17 +121,8 @@ class Database :
             return DBQueryResult(False, None)
 
 
-    def insert_row(self, table_name: str, values: Row) -> DBQueryResult:
-        ''' Inserting a single row into a table. '''
-        if table_name and len(values) > 0 :
-            placeholders = ', '.join(['%s'] * len(values))
-            query = f"INSERT INTO {table_name} VALUES ({placeholders})"
-            return self.run_query(query, params=values)
-        return DBQueryResult(False, 0)
-
-
     def insert_rows(self, table_name: str, values: Rows) -> DBQueryResult:
-        ''' Inserting multiple rows into a table. '''
+        ''' Inserting one or multiple rows into a table. '''
         if table_name and len(values) > 0 and len(values[0]) > 0 :
             placeholders = ', '.join(['%s'] * len(values[0]))
             query = f"INSERT INTO {table_name} VALUES ({placeholders})"
@@ -118,25 +130,37 @@ class Database :
         return DBQueryResult(False, 0)
 
 
-    def update_data(self, table_name, set_values, condition) :
-        """Обновление данных в таблице."""
-        query = f"UPDATE {table_name} SET {set_values} WHERE {condition}"
-        self.execute_query(query)
-        self.commit()
+    def update_data(self,
+                    table_name: str,
+                    set_statement: str,
+                    condition_statement: str) -> DBQueryResult :
+        ''' Updating the data in the table. '''
+        if table_name and set_statement and condition_statement :
+            query = (f'UPDATE {table_name} SET {set_statement} '
+                     f'WHERE {condition_statement}')
+            return self.run_query(query)
+        return DBQueryResult(False, None)
 
 
-    def delete_rows(self, table_name, condition) :
-        """Удаление строк из таблицы."""
-        query = f"DELETE FROM {table_name} WHERE {condition}"
-        self.execute_query(query)
-        self.commit()
+    def delete_rows(self,
+                    table_name: str,
+                    condition_statement: str = '')  -> DBQueryResult :
+        ''' Deleting rows from a table. '''
+        if table_name :
+            query = (f'DELETE FROM {table_name}')
+            if condition_statement :
+                query += f' WHERE {condition_statement}'
+            return self.run_query(query)
+        return DBQueryResult(False, None)
 
 
     def count_rows(self, table_name):
-        """Получение количества строк в таблице."""
-        query = f"SELECT COUNT(*) FROM {table_name}"
-        result = self.execute_query(query)
-        return result[0][0]
+        '''Getting the number of rows in a table.'''
+        if table_name :
+            query = f'SELECT COUNT(*) FROM {table_name}'
+            res = self.run_query(query).value[0][0]
+            return DBQueryResult(True, res)
+        return DBQueryResult(False, None)
 
 
     def close_connection(self) :

@@ -21,6 +21,7 @@ from faker import Faker
 
 
 def generate_fake_data(count: int) -> Rows :
+    ''' Generating fake data for the demo function <pgdb_examples> '''
     fake = Faker('ru_RU')
     fake_rows = ((str(_), fake.company()[0:25]) for _ in range(1, count+1))
     return fake_rows
@@ -64,6 +65,10 @@ def _update_birthdate() -> int :
 
     data = tuple(generate_fake_data(25))
     res = db.insert_rows(table_name='new_table', values=data)
+    res = db.update_data(table_name='new_table',
+                         set_statement='post_name = \'TEST2\'',
+                         condition_statement='post_id in (\'10\', \'11\', \'12\', \'13\', \'15\')')
+    res = db.delete_rows('new_table', 'post_name in (\'TEST2\')')
     print(res.is_successful)
     print(res.value)
 
@@ -72,10 +77,9 @@ def _update_birthdate() -> int :
     #     ON CONFLICT (post_id) DO UPDATE
     #     SET post_name = EXCLUDED.post_name;
     #     '''
-    #
-    #
-    # print(db.run_query(query=insert_query, params=('TEST',)).is_successful)
-
+    res = db.count_rows('new_table')
+    print(res.is_successful)
+    print(res.value)
 
     db.close_connection()
     return True
