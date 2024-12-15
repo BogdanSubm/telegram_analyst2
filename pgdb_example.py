@@ -6,7 +6,7 @@ from faker import Faker
 
 
 def generate_fake_data(start: int, count: int) -> Rows :
-    ''' Generating fake data for the demo function <pgdb_examples> '''
+    ''' Generating fake data for the demo function <main> '''
     # fake = Faker('ru_RU')
     fake = Faker('en_US')
     fake_rows = ((str(_), fake.company()[0:30]) for _ in range(start, start+count+1))

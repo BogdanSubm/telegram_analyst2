@@ -1,0 +1,19 @@
+{
+    "telegram": {
+        "api_id": __your_api__,
+        "api_hash": "____________your_hash_______________",
+        "bot_auth_token": "__________you_bot_token_(not_applicable_yet)_________",
+        "summary_receivers": ["____(not_applicable_yet)____"]
+    },
+    "database_connection": {
+        "host": "localhost",
+        "port": 5432,
+        "user": "postgres",
+        "password": "123456"
+    },
+    "logging": {
+        "path": ".log",
+        "file_name_prefix": "tg_an2_",
+        "max_num_log_files": 5
+    }
+}
