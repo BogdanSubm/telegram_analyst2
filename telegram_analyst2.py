@@ -22,14 +22,9 @@ from pgdb import Database
 from database import db
 
 
-
-channels = [-1001373128436, -1001920826299, -1001387835436, -1001490689117]
-
 plugins = dict(root=settings.pyrogram.plugins.root,
                include=settings.pyrogram.plugins.include,
                exclude=settings.pyrogram.plugins.exclude)
-
-# chats_for_filters = ['me', my_group]
 
 app = Client(name='test_pyrogram',
              api_id=settings.telegram.api_id,
@@ -46,30 +41,12 @@ simulative_cht = 'itresume_chat'       # an outside supergroup
 #     await message.edit_text(text=f'--{message.text}--', parse_mode=ParseMode.MARKDOWN)
 #     mylogger.info(f'handling new typing message: {message.id}, {message.text}')
 
-async def get_channels(client: Client) -> list[int]:
-    # Iterate through all dialogs
-    i = 0
-    res = []
-    async for dialog in client.get_dialogs() :
-        if i < settings.analyst.numb_channels_process:
-                                #     FOR DEBUGGING
-            if dialog.chat.id in (-1001373128436, -1001920826299, -1001387835436, -1001490689117) :
-            # if dialog.chat.type in (ChatType.SUPERGROUP, ChatType.CHANNEL) :
-                mylogger.info(f'channel/group has been added for downloading: {dialog.chat.id} - {dialog.chat.title}')
-                res.append(int(dialog.chat.id))
-                i += 1
-    return res
-
 
 async def main() :
 
     async with app :
         await app.send_message('me', 'Telegram_analyst2 is running, to find out the commands, type: /help')
-
-        #     FOR DEBUGGING
-        print(await get_channels(app))
-
-        # await idle()
+        await idle()
 
 
 if __name__ == '__main__':

@@ -1,5 +1,6 @@
 .venv
 .log
 .env
+.first_run
 config.json
 *.session

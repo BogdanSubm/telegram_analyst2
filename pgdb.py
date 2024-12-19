@@ -36,7 +36,14 @@ class DBQueryResult :
     value: tuple | int | None    # received data
 
 
-class Database :
+class Database :        # we use singleton pattern
+    __db_instance = None
+
+    def __new__(cls, *args, **kwargs) :
+        if not cls.__db_instance :
+            cls.__db_instance = super().__new__(cls)
+        return cls.__db_instance
+
     def __init__(self, db_connect_set: DBConnectionSettings) :
         ''' Constructor '''
         self.db_connect_set = db_connect_set
@@ -110,7 +117,7 @@ class Database :
         if table_name and columns_statement :
             if self.search_table(table_name) :
                 if overwrite :
-                    query = f'DROP TABLE {table_name}'
+                    query = f'DROP TABLE {table_name} CASCADE'
                     if not self.run_query(query).is_successful :
                         # print(f'The already existing table {table_name} has not been deleted.')
                         return DBQueryResult(False, None)
