@@ -1,54 +1,189 @@
-import asyncio
-import betterlogging as logging
+import time
+from webbrowser import BackgroundBrowser
 
-from pyrogram import Client, idle, filters, raw, types
-from pyrogram.types import Message, Chat
-from pyrogram.enums import ParseMode
-from pyrogram.handlers import MessageHandler, RawUpdateHandler
-from typing import Dict, Union
-from pyrogram.errors import FloodWait
-from pyrogram import Client, emoji, filters
+import asyncio
+import pyrogram.types as PyroTypes
+
+# from pyrogram import Client, idle, filters, raw, types
+# from pyrogram.filters import Filter
+# from pyrogram.types import Message, Chat
+# from pyrogram.enums import ParseMode
+# from pyrogram.handlers import MessageHandler, RawUpdateHandler
+# from typing import Dict, Union
+# from pyrogram.errors import FloodWait
+# from pyrogram import emoji, enums
+from pyrogram import Client, filters
+
+# Модуль для автоматизации
+# import time
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 
 from datetime import datetime, date
-import config
 
-api_id = config.API_ID
-api_hash = config.API_HASH
-# app = Client('test_pyrogram')
-app = Client('test_pyrogram', api_id, api_hash)
+from config_py import settings
+import logging
+from logger import get_logger
+
+# import pyrogram.utils as utils
+#
+# def get_peer_type(peer_id: int) -> str:
+#     print('get_peer_type call')
+#     peer_id_str = str(peer_id)
+#     if not peer_id_str.startswith("-"):
+#         return "user"
+#     elif peer_id_str.startswith("-100"):
+#         return "channel"
+#     else:
+#         return "chat"
+#
+# utils.get_peer_type = get_peer_type
 
 
-def get_work_channels() -> list[int]:
-    channels = [-1001373128436, -1001920826299, -1001387835436, -1001490689117]
-    return channels[0:1]
+channels = [-1001373128436, -1001920826299, -1001387835436, -1001490689117]
 
+mylogger = get_logger(logging.INFO, to_file=False)
+
+plugins = dict(root=settings.pyrogram.plugins.root,
+               include=settings.pyrogram.plugins.include,
+               exclude=settings.pyrogram.plugins.exclude)
+
+# chats_for_filters = ['me', my_group]
+
+# plugins = dict(root='plugins')
+
+app = Client(name='test_pyrogram',
+             api_id=settings.telegram.api_id,
+             api_hash=settings.telegram.api_hash,
+             plugins=plugins)
+
+
+my_group = 'My_test_group20242003'
+my_group_id = -1002330451219
+simulative_chl = 'simulative_official'  # an outside channel
+simulative_chl_id = -1001373128436
+simulative_cht = 'itresume_chat'       # an outside supergroup
+
+
+
+# @app.on_message()
+# def echo(client, message):
+#     app.send_video(message.chat.id, "https://tina.batseva.ru/Video/whiteGuiNew.mp4")
+# async def main():
+#     async with app :
+#         # ошибка - для канала требует права администратора (только для каналов)
+        # async for member in app.get_chat_members(simulative_chl, limit=5) :
+        # для супергруппы отработало норм
+        # async for member in app.get_chat_members(simulative_cht, limit=5) :
+        #     print(member)
+        # Get bots (работает для супергруппы / для канала нужны права админа)
+#         async for bot in app.get_chat_members(simulative_chl, filter=enums.ChatMembersFilter.BOTS) :
+#             print(bot)
+# app.run(main())
+
+# with app :
+    # загрузка медиа (на примере фото чата)
+    # with open(file='python-lib.jpg', mode='rb') as file:
+         # app.set_chat_photo(my_group, photo=file)
+
+    # история канала (все сообщения сразу или по частям)
+    # hist = app.get_chat_history(my_group, limit=5)
+    # for h in hist:
+    #     print(h)
+    #     mylogger.info(h)
+
+    # саммари по чату (в том числе логин канала и количество участников)
+    # res =app.get_chat(my_group)
+    # print(res)
+
+    # Всего диалогов (у меня) 936
+    # res = app.get_dialogs_count()
+    #
+    # # Всего закрепленных диалогов (у меня) 3
+    # res = app.get_dialogs_count(pinned_only=True)
+    # print(res)
+    #
+    # Сколько пользователей в онлайне (работает для супергрупп)
+    # online = app.get_chat_online_count(simulative_chl_id)
+    # print(online)
+
+    # Информация о нашем аккаунте
+    # me = app.get_me()
+    # print(me)
+
+    # # Получаем информацию об аккаунте собеседника (Андрон)
+    # you = app.get_users('andron233')
+    # # print(you)
+    # # Пересылаем фото из профиля Андрона в наш канал
+    # #   ошибка - опознано как CHAT_PHOTO а не PHOTO
+    # # app.send_photo('me', photo=you.photo.small_file_id)
+    # # Получаем фото подругому
+    # photos = app.get_chat_photos('andron233', limit=10)
+    # # for photo in photos:
+    # #     print(photo)
+    # # print([*photos])  # преобразуем генератор в список
+    # # Пробуем еще раз
+    # # app.send_photo('me', photo=[*photos][0].file_id)
+    # # Или так
+    # for photo in photos:
+    #     app.send_photo('me', photo=photo.file_id)
+
+
+# @app.on_message(filters.chat(my_group_id) & ~filters.bot)
+# def echo(client, message) :
+#     app.send_message('me', f'Новое сообщение в канале: {my_group} >  '
+#                            f'{message.text}')
+# app.run()
+
+# Создание своих фильтров
+# def func_bot_filter(_, __, query: PyroTypes.Message) -> bool:
+#     return query.from_user.is_bot
+#
+# msg_bot_filter = filters.create(func_bot_filter)
+#
+# @app.on_message(filters.chat(['me',my_group]) & ~msg_bot_filter)
+# def echo(client, message: PyroTypes.Message) :
+#     app.send_message('me', f'Новое сообщение в канале: {message.chat.title} >  '
+#                            f'{message.text}')
+# app.run()
+
+# Создание своих фильтров через lambda
+# msg_bot_filter = filters.create(lambda _, __, query: not query.from_user.is_bot)
+#
+# @app.on_message(filters.chat(['me',my_group]) & msg_bot_filter)
+# def echo(client, message: PyroTypes.Message) :
+#     app.send_message('me', f'Новое сообщение в канале: {message.chat.title} >  '
+#                            f'{message.text}')
+# app.run()
+
+# Организация обработки обновлений через плагины
+# Настройки папок для хендлеров а config.json
+# Обработчик в handlers.py, фильтр для него в handler_filters.py
+# chats_for_filters = ['me', my_group]
+# app.run()
+
+# АВТОМАТИЗАЦИЯ
+async def job() :
+    # time.sleep(1)
+    await app.send_message('me', f'1:{datetime.now()}')
+
+async def job2() :
+    # time.sleep(1)
+    await app.send_message('me', f'2:{datetime.now()}')
 
 async def main():
-    logging.basic_colorized_config(level=logging.INFO)
+
     async with app:
-
-        for ch in get_work_channels():
-            chat: Chat = await app.get_chat(ch)
-            if chat:
-                # print(f'Успешно прочитан чат #: {ch}.')
-                logging.info(f'Успешно прочитан чат #: {chat.id} | {chat.username} | {chat.type.value}.')
-                logging.info(f'Численность по состоянию на {datetime.now()}: {chat.members_count}')
-                logging.info(f'Число постов по состоянию на {datetime.now()}: {await app.get_chat_history_count(chat.id)}')
-            else:
-                # print(f'Чат #: {ch} не обнаружен.')
-                logging.info(f'Чат #: {ch} не обнаружен.')
-#
-# async def main2():
-#     async with Client('test_pyrogram', api_id, api_hash) as app:
-#         await app.send_message('me', f'{emoji.HEART_ON_FIRE} Greetings from **Pyrogram** again! {emoji.SPARKLES}')
-#
-#
-# async def main3():          # всего сообщений в канале
-#     # Target channel/supergroup
-#     TARGET = -1001373128436     # simulative
-#     async with app:
-#         res = await app.get_chat_history_count(TARGET)
-#         print(res)
+        scheduler = AsyncIOScheduler()
+        # scheduler = BackgroundScheduler()
+        scheduler.add_job(job, 'interval', seconds=3)
+        scheduler.add_job(job2, 'interval', seconds=4)
+        scheduler.start()
+        while True :
+            pass
+            await asyncio.sleep(1000)
 
 
-app.run(main())
+asyncio.run(main())
+
+

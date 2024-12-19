@@ -1,5 +1,6 @@
-# The module of functions for logging
-from cgitb import handler
+"""
+The module of functions for logging
+"""
 from datetime import datetime
 import os
 import re
@@ -7,6 +8,10 @@ import logging
 
 from config_py import settings
 
+
+mylogger = None   # Global variable for save only one instance of the mylogger
+                # the command for use the mylogger in another module:
+                #   from mylogger import mylogger
 
 format_line = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
@@ -55,18 +60,18 @@ def _init_logging() -> str :
 
 
 def get_logger(level: int = logging.DEBUG, to_file: bool = True) -> logging.Logger:
+    global mylogger
+    if not mylogger:  # only one copy of the registrar at a time
+        mylogger = logging.getLogger('tgan2_logger')
+        mylogger.setLevel(level)
 
-    logger = logging.getLogger('tgan2_logger')
-    logger.setLevel(level)
+        if to_file :
+            handler = logging.FileHandler(_init_logging())
+            formatter = logging.Formatter(format_line)
+        else :
+            handler = logging.StreamHandler()
+            formatter = ColoredFormatter()
 
-    if to_file :
-        handler = logging.FileHandler(_init_logging())
-        formatter = logging.Formatter(format_line)
-    else :
-        handler = logging.StreamHandler()
-        formatter = ColoredFormatter()
-
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-    return logger
+        handler.setFormatter(formatter)
+        mylogger.addHandler(handler)
+    return mylogger

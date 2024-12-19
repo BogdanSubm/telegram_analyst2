@@ -15,6 +15,9 @@
 # >>>  Usage examples in the <pgdb_example.py> module
 #
 
+from logger import mylogger
+mylogger.debug('Loading <pgdb> module')
+
 import psycopg2
 from psycopg2 import extensions
 from dataclasses import dataclass
@@ -41,11 +44,11 @@ class Database :
             self.connect: ConnectionType = psycopg2.connect(
                 **db_connect_set.model_dump()
             )
-            print("Data base successfully connected.")
+            mylogger.info('Data base successfully connected.')
             self.is_connected = True
 
         except Exception as e :
-            print(f"An error occurred while connecting: {e}")
+            mylogger.error('An error occurred while connecting data base: {e}')
             self.is_connected = False
 
 

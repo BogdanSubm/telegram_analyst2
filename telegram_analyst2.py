@@ -2,44 +2,75 @@
 main module
 """
 import logging
+from logger import get_logger, mylogger
+mylogger = get_logger(logging.DEBUG, to_file=False)
+mylogger.debug('Loading <mylogger> module')
+mylogger.debug('Starting main module <telegram_analyst2>')
 
+
+import asyncio
 from pyrogram import Client, idle, filters, raw, types
-from pyrogram.types import Message
-from pyrogram.enums import ParseMode
+from pyrogram.types import Message, Dialog
+from pyrogram.enums import ParseMode, ChatType
 from pyrogram.handlers import MessageHandler, RawUpdateHandler
 from typing import Dict, Union
 from pyrogram.errors import FloodWait
 
-import asyncio
-
 
 from config_py import settings
-from logger import get_logger
+from pgdb import Database
+from database import db
 
 
-logger = get_logger(logging.INFO, to_file=True)
 
+channels = [-1001373128436, -1001920826299, -1001387835436, -1001490689117]
 
-async def outbox_message(client: Client, message: Message):
-    await message.edit_text(text=f'--{message.text}--', parse_mode=ParseMode.MARKDOWN)
-    logger.info(f'handling new typing message: {message.id}, {message.text}')
+plugins = dict(root=settings.pyrogram.plugins.root,
+               include=settings.pyrogram.plugins.include,
+               exclude=settings.pyrogram.plugins.exclude)
+
+# chats_for_filters = ['me', my_group]
+
+app = Client(name='test_pyrogram',
+             api_id=settings.telegram.api_id,
+             api_hash=settings.telegram.api_hash,
+             plugins=plugins)
+
+my_group = 'My_test_group20242003'
+my_group_id = -1002330451219
+simulative_chl = 'simulative_official'  # an outside channel
+simulative_chl_id = -1001373128436
+simulative_cht = 'itresume_chat'       # an outside supergroup
+
+# async def outbox_message(client: Client, message: Message):
+#     await message.edit_text(text=f'--{message.text}--', parse_mode=ParseMode.MARKDOWN)
+#     mylogger.info(f'handling new typing message: {message.id}, {message.text}')
+
+async def get_channels(client: Client) -> list[int]:
+    # Iterate through all dialogs
+    i = 0
+    res = []
+    async for dialog in client.get_dialogs() :
+        if i < settings.analyst.numb_channels_process:
+                                #     FOR DEBUGGING
+            if dialog.chat.id in (-1001373128436, -1001920826299, -1001387835436, -1001490689117) :
+            # if dialog.chat.type in (ChatType.SUPERGROUP, ChatType.CHANNEL) :
+                mylogger.info(f'channel/group has been added for downloading: {dialog.chat.id} - {dialog.chat.title}')
+                res.append(int(dialog.chat.id))
+                i += 1
+    return res
 
 
 async def main() :
-    app = Client(name='test_pyrogram',
-                 api_id=settings.telegram.api_id,
-                 api_hash=settings.telegram.api_hash)
 
-    app.add_handler(MessageHandler(outbox_message, filters.me & filters.text))
+    async with app :
+        await app.send_message('me', 'Telegram_analyst2 is running, to find out the commands, type: /help')
 
-    logger.debug('info')
-    logger.info('info')
-    logger.warning('warning')
-    logger.error('error')
+        #     FOR DEBUGGING
+        print(await get_channels(app))
 
-    await app.start()
-    await idle()
-    await app.stop()
+        # await idle()
+
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    app.run(main())
