@@ -2,10 +2,10 @@
 main module
 """
 import logging
-from logger import get_logger, mylogger
-mylogger = get_logger(logging.DEBUG, to_file=False)
-mylogger.debug('Loading <mylogger> module')
-mylogger.debug('Starting main module <telegram_analyst2>')
+from logger import get_logger, logger
+logger = get_logger(logging.DEBUG, to_file=False)
+logger.debug('Loading <mylogger> module')
+logger.debug('Starting main module <telegram_analyst2>')
 
 
 import asyncio
@@ -16,10 +16,7 @@ from pyrogram.handlers import MessageHandler, RawUpdateHandler
 from typing import Dict, Union
 from pyrogram.errors import FloodWait
 
-
 from config_py import settings
-from pgdb import Database
-from database import db
 
 
 plugins = dict(root=settings.pyrogram.plugins.root,
@@ -46,6 +43,7 @@ async def main() :
 
     async with app :
         await app.send_message('me', 'Telegram_analyst2 is running, to find out the commands, type: /help')
+
         await idle()
 
 

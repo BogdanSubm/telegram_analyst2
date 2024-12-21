@@ -1,5 +1,6 @@
 import pathlib
 from email.policy import default
+from datetime import datetime
 from typing import List, Union, Annotated
 from pydantic import BaseModel, Field, PositiveInt, computed_field
 import argparse
@@ -31,6 +32,8 @@ class PyrogramSettings(BaseModel) :
     plugins: PyrogramPlugins = Field(description='plugins storage')
 
 class AnalystSettings(BaseModel) :
+    analyzing_from: datetime = Field(default=datetime.fromisoformat( "2024-10-01 00:00:00.000"),
+                                     description='start time of the analysis period')
     numb_channels_process : PositiveInt = Field(default=10, description='limiting the number of channels '
                                                                         'for the first download')
 
@@ -46,32 +49,45 @@ _settings_json_string = pathlib.Path('config.json').read_text()
 settings = AppSettings.model_validate_json(_settings_json_string)
 
 
+# a class for working with the flag - the first launch of the application
+# (we use singleton pattern)
 class FirstRunFlag() :
-    def __init__(self) :
-        self._is_first_run = False
+    __is_first_run_flag_instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls.__is_first_run_flag_instance is None :
+            cls.__is_first_run_flag_instance = super().__new__(cls)
+        return cls.__is_first_run_flag_instance
+
+    def __init__(self):
+        self.__flag = False
         try :
             with open('.first_run', 'r') as f :
+                # if the flag file exists, this is not the first launch of the application
+                # we are checking its integrity
                 if 'succeed' in f.read() :
                     need_restore = False
                 else :
                     need_restore = True
-            # restore file-flag
+
+            # we restore the flag file if necessary
             if need_restore :
                 with open('.first_run', 'w') as f :
                     f.write('succeed')
 
         except FileNotFoundError as e:
-            self._is_first_run = True
+            # the flag-file is missing - this is the first launch of the application
+            self.__flag = True
 
-    def get(self) -> bool :
-        return self._is_first_run
+    def is_first(self) -> bool:
+        return self.__flag
 
-    def set_off(self) -> None:
+    def set_not_first(self) :
         with open('.first_run', 'w') as f :
             f.write('succeed')
-        self._is_first_run = False
+        self.__flag = False
 
-is_first_run = FirstRunFlag()
+
 
 if __name__ == "__main__":
     print(settings.model_dump())

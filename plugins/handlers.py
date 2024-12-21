@@ -1,7 +1,7 @@
 # Handlers module
 
-from logger import mylogger
-mylogger.debug('Loading handlers module')
+from logger import logger
+logger.debug('Loading handlers module')
 
 from pyrogram import Client, filters
 from pyrogram.types import Message
@@ -30,14 +30,14 @@ async def command_handler(client: Client, message: Message) :
     global is_started, is_stopped
     if not is_stopped:
         if message.text == '/install' and not is_started:
-            mylogger.info('the "/install" command has been entered')
+            logger.info('the "/install" command has been entered')
             if await first_run(client) :
                 await message.reply('Initialization was successful!')
             else :
                 await message.reply('Sorry, initialization failed.\n Try restarting the application!')
 
         elif message.text == '/start' and not is_started :
-            mylogger.info('the "/start" command has been entered')
+            logger.info('the "/start" command has been entered')
             if await another_run(client) :
                 is_started = True
                 await message.reply('Processing started...')
@@ -45,7 +45,7 @@ async def command_handler(client: Client, message: Message) :
                 await message.reply('Sorry, processing has not started (you may need to install)...')
 
         elif message.text == '/help' :
-            mylogger.info('the "/help" command has been entered')
+            logger.info('the "/help" command has been entered')
             if not is_started :
                 await message.reply('Available commands:\n'
                                     '  /install - 1th run & reset all database\n'
@@ -60,7 +60,7 @@ async def command_handler(client: Client, message: Message) :
                                     )
 
         elif message.text == '/stop' :
-            mylogger.info('the "/stop" command has been entered')
+            logger.info('the "/stop" command has been entered')
             if db:
                 db.close_connection()
             is_stopped = True

@@ -42,7 +42,7 @@ from logger import get_logger
 
 channels = [-1001373128436, -1001920826299, -1001387835436, -1001490689117]
 
-mylogger = get_logger(logging.INFO, to_file=False)
+logger = get_logger(logging.INFO, to_file=False)
 
 plugins = dict(root=settings.pyrogram.plugins.root,
                include=settings.pyrogram.plugins.include,

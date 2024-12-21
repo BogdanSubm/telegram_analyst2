@@ -15,17 +15,18 @@
 # >>>  Usage examples in the <pgdb_example.py> module
 #
 
-from logger import mylogger
-mylogger.debug('Loading <pgdb> module')
+from logger import logger
+logger.debug('Loading <pgdb> module')
 
 import psycopg2
 from psycopg2 import extensions
 from dataclasses import dataclass
+from typing import NamedTuple
 
 from config_py import DBConnectionSettings
 
 # Type's hints
-Row = tuple
+Row = NamedTuple
 Rows = tuple[Row]
 ConnectionType = psycopg2.extensions.connection
 
@@ -36,7 +37,8 @@ class DBQueryResult :
     value: tuple | int | None    # received data
 
 
-class Database :        # we use singleton pattern
+# a class for working with the database connection (we use singleton pattern)
+class Database :
     __db_instance = None
 
     def __new__(cls, *args, **kwargs) :
@@ -51,11 +53,11 @@ class Database :        # we use singleton pattern
             self.connect: ConnectionType = psycopg2.connect(
                 **db_connect_set.model_dump()
             )
-            mylogger.info('Data base successfully connected.')
+            logger.debug('The database has been successfully connected.')
             self.is_connected = True
 
         except Exception as e :
-            mylogger.error('An error occurred while connecting data base: {e}')
+            logger.error('An error occurred while connecting database: {e}')
             self.is_connected = False
 
 
@@ -79,6 +81,16 @@ class Database :        # we use singleton pattern
         except Exception as e :
             print(f"An error occurred while executing the request: {e}")
             return DBQueryResult(False, None)
+
+
+    def search_rows(self, table_name: str, search_column: str = 'id', search_value = 0) -> bool :
+        ''' A simple searcher for one column '''
+        if table_name :
+            query = f'SELECT count(*) FROM {table_name} WHERE {search_column} = {search_value}'
+            res = self.run_query(query)
+            if res.is_successful and res.value[0][0] > 0 :
+                return True
+        return False
 
 
     def read_rows(self,
@@ -119,11 +131,11 @@ class Database :        # we use singleton pattern
                 if overwrite :
                     query = f'DROP TABLE {table_name} CASCADE'
                     if not self.run_query(query).is_successful :
-                        # print(f'The already existing table {table_name} has not been deleted.')
+                        logger.debug(f'The already existing table {table_name} has not been deleted.')
                         return DBQueryResult(False, None)
-                    # print(f'The already existing table {table_name} has been deleted.')
+                    logger.debug(f'The already existing table {table_name} has been deleted.')
                 else:
-                    # print(f'Error, table {table_name} is already there.')
+                    logger.debug(f'Error, table {table_name} is already there.')
                     return DBQueryResult(False, None)
             query = f'CREATE TABLE {table_name} ({columns_statement})'
             return self.run_query(query)

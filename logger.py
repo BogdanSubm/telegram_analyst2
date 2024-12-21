@@ -9,9 +9,9 @@ import logging
 from config_py import settings
 
 
-mylogger = None   # Global variable for save only one instance of the mylogger
-                # the command for use the mylogger in another module:
-                #   from mylogger import mylogger
+logger: logging.Logger | None = None    # Global variable for save only one instance of the logger
+                                        # the command for use the logger in another module:
+                                        #   <from logger import logger>
 
 format_line = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
@@ -60,10 +60,10 @@ def _init_logging() -> str :
 
 
 def get_logger(level: int = logging.DEBUG, to_file: bool = True) -> logging.Logger:
-    global mylogger
-    if not mylogger:  # only one copy of the registrar at a time
-        mylogger = logging.getLogger('tgan2_logger')
-        mylogger.setLevel(level)
+    global logger
+    if not logger:  # only one copy of the registrar at a time
+        logger = logging.getLogger('tgan2_logger')
+        logger.setLevel(level)
 
         if to_file :
             handler = logging.FileHandler(_init_logging())
@@ -73,5 +73,5 @@ def get_logger(level: int = logging.DEBUG, to_file: bool = True) -> logging.Logg
             formatter = ColoredFormatter()
 
         handler.setFormatter(formatter)
-        mylogger.addHandler(handler)
-    return mylogger
+        logger.addHandler(handler)
+    return logger
