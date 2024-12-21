@@ -8,6 +8,7 @@
     "database_connection": {
         "host": "localhost",
         "port": 5432,
+        "dbname": "tg_analyst2",
         "user": "postgres",
         "password": "123456"
     },
@@ -15,5 +16,16 @@
         "path": ".log",
         "file_name_prefix": "tg_an2_",
         "max_num_log_files": 5
+    },
+    "pyrogram": {
+        "plugins": {
+            "root": "plugins",
+            "include": ["handlers"],
+            "exclude": []
+        }
+    },
+    "analyst": {
+        "analyzing_from": "2024-10-01 00:00:00.000",
+        "numb_channels_process" : 10
     }
 }
