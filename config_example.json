@@ -3,7 +3,8 @@
         "api_id": __your_api__,
         "api_hash": "____________your_hash_______________",
         "bot_auth_token": "__________you_bot_token_(not_applicable_yet)_________",
-        "summary_receivers": ["____(not_applicable_yet)____"]
+        "api_calls_per_minute": 60,
+        "api_idle_reset_time": 300
     },
     "database_connection": {
         "host": "localhost",
@@ -26,11 +27,6 @@
     },
     "analyst": {
         "analyzing_from": "2024-10-01 00:00:00.000",
-        "numb_channels_process" : 10
-    },
-    "telegram_normalizer": {
-        "api_call_before_pause": 1,
-        "api_call_pause_duration": 0.8,
-        "flood_idle_period": 60
+        "numb_channels_process" : 1000
     }
 }

@@ -8,6 +8,7 @@ import asyncio
 import datetime
 from datetime import datetime
 from pyrogram import Client
+from pyrogram.types import Message
 from pyrogram.enums import ParseMode, ChatType
 from dataclasses import dataclass
 from pyrogram.errors import FloodWait
@@ -23,17 +24,23 @@ first_run_flag = FirstRunFlag() # let's find out: is this the first launch of ou
 db: Database | None = None   # global Database object
 normalizer = Normalizer()
 
+
 # The data structures for save in database
 class DBChannel(Row) :       # record in <channel> table
     id: int     # channel id
     username: str   # name for telegram channel login
     title: str  # title of the channel
     category: str   # 'Аналитика' - channel category
-    creation_time: datetime = datetime.fromisoformat('2020-01-01 00:00:00.000')    # channel creation time
+    creation_time: datetime     # channel creation time
+
 
 async def get_channel_first_post_time(client, channel) -> datetime :
     # TO DO: Определить время первой активности на канале
-    return datetime.fromisoformat('2024-01-01 00:00:00.000')
+    async for msg in client.get_chat_history(channel, limit=2, offset_id=2) :
+        first_message: Message = msg
+    logger.debug(f'first message id: {first_message.id}')
+    return first_message.date
+    # return datetime.fromisoformat('2024-01-01 00:00:00.000')
 
 
 async def get_channel_information(client: Client, channel: int) -> DBChannel | None :
@@ -126,6 +133,7 @@ async def get_channels(client: Client) -> list[int]:
     i = 0
     res = []
     async for dialog in client.get_dialogs() :
+
         if i < settings.analyst.numb_channels_process:
 
                                 #     FOR DEBUGGING
@@ -137,6 +145,7 @@ async def get_channels(client: Client) -> list[int]:
                 i += 1
 
     logger.debug(f'channels in the selection: {res}')
+
 
     return res
 
@@ -222,7 +231,7 @@ async def first_run(client: Client) -> Database | bool :
         logger.info('Successful installation!')
 
         #    FOR DEBUGGING, PLACE A COMMENT SYMBOL IN FRONT OF THE LINE BELOW
-        first_run_flag.set_not_first()
+        # first_run_flag.set_not_first()
 
         return True
     else :
