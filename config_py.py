@@ -32,10 +32,18 @@ class PyrogramSettings(BaseModel) :
     plugins: PyrogramPlugins = Field(description='plugins storage')
 
 class AnalystSettings(BaseModel) :
-    analyzing_from: datetime = Field(default=datetime.fromisoformat( "2024-10-01 00:00:00.000"),
+    analyzing_from: datetime = Field(default=datetime.fromisoformat("2024-10-01 00:00:00.000"),
                                      description='start time of the analysis period')
-    numb_channels_process : PositiveInt = Field(default=10, description='limiting the number of channels '
-                                                                        'for the first download')
+    numb_channels_process: PositiveInt = Field(default=10, description='limiting the number of channels '
+                                                                       'for the first download')
+
+class TelegramNormalizerSettings(BaseModel) :
+    api_call_before_pause: PositiveInt = Field(default=10,
+                                               description='the number of api function calls before the pause')
+    api_call_pause_duration : float = Field(default=5.0, description='the duration of the pause in seconds')
+    flood_idle_period : PositiveInt = Field(default=60, description='the duration of the period when api '
+                                                                    'functions are not accessed to reset '
+                                                                    'the normalizer counters')
 
 class AppSettings(BaseModel):
     telegram: TelegramSettings = Field(description='telegram settings')
@@ -43,6 +51,7 @@ class AppSettings(BaseModel):
     logging: LogSettings = Field(description='logging settings')
     pyrogram: PyrogramSettings = Field(description='pyrogram settings')
     analyst: AnalystSettings = Field(description='other app settings')
+    telegram_normalizer: TelegramNormalizerSettings = Field(description='settings to prevent a ban for a flood in Telegram')
 
 
 _settings_json_string = pathlib.Path('config.json').read_text()

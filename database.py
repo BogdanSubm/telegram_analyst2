@@ -14,15 +14,14 @@ from pyrogram.errors import FloodWait
 
 from typing import NamedTuple
 
-
 from pgdb import Database, Row, Rows
 from config_py import settings, FirstRunFlag
-
+from normalizer import Normalizer
 
 first_run_flag = FirstRunFlag() # let's find out: is this the first launch of our application
 
 db: Database | None = None   # global Database object
-
+normalizer = Normalizer()
 
 # The data structures for save in database
 class DBChannel(Row) :       # record in <channel> table
@@ -33,12 +32,13 @@ class DBChannel(Row) :       # record in <channel> table
     creation_time: datetime = datetime.fromisoformat('2020-01-01 00:00:00.000')    # channel creation time
 
 async def get_channel_first_post_time(client, channel) -> datetime :
+    # TO DO: Определить время первой активности на канале
     return datetime.fromisoformat('2024-01-01 00:00:00.000')
 
 
 async def get_channel_information(client: Client, channel: int) -> DBChannel | None :
     try :
-        ch = await client.get_chat(channel)
+        ch = await normalizer.run(client.get_chat, channel)
         channel_first_post_time = await get_channel_first_post_time(client, channel)
         record = DBChannel(id=ch.id,
                            username=ch.username,
@@ -54,37 +54,43 @@ async def get_channel_information(client: Client, channel: int) -> DBChannel | N
     return record
 
 
-async def update_all(client: Client, channels: list[int], update_time: datetime) -> bool:
+async def update_all(client: Client, channels: list[int] | None, update_time: datetime | None) -> bool:
+    global normalizer
+    if channels is None:
+        # The value None of this parameter means that we will process channels from the <channel> table.
+        res = db.read_rows(table_name='channel')
+        if res.is_successful :
+            if len(res.value)>0 :
+                channels = [_[0] for _ in res.value]
+                logger.debug(f'<channels> parameter is None, channels are ready for process: {channels}')
+            else:
+                logger.error('Error: channel <table> is empty')
+                return False
+        else:
+            logger.error('Error: <channel> table reading error')
+            return False
 
-    # TO DO: Найти каналы которые есть в списке и нет в базе
-    #   Для них выполнить добавление каналов в базу:
-    #       новые записи в таблице channel и channel_hist
+    for ch in channels :
 
-    # res = db.read_rows(table_name='channel', condition_statement='')
-    # print(res)
-    for ch in channels:
         if db.search_rows(table_name='channel', search_column='id', search_value=ch) :
             logger.debug(f'channel with id # {ch} success found')
         else:
             logger.debug(f'channel with id # {ch} not found, let\'s add him')
+
             insert_channel = await get_channel_information(client=client, channel=ch)
             if insert_channel :
                 res = db.insert_rows(table_name='channel', values=(insert_channel,))
-                logger.info(f'channel with id # {ch} has {"" if res.is_successful else "not"} '
+                logger.info(f'channel with id # {ch} has {"" if res.is_successful else "not "}'
                             f'been added')
             else:
                 logger.error(f'Error: it is not possible to get information to add'
                              f' on the channel with the ID #: {ch}')
 
-
-    # if res.is_successful :
-    #     if len(res.value)>0 :
-    #         channels_in_db: list[DBChannel] = (
-    #             [DBChannel(r[0], r[1], r[2], r[3], r[4]) for r in res.value])
+        # await asyncio.sleep(delay=1)
 
 
-        # print(channels_in_db)
-
+    # TO DO: Для всех каналов произвести апдейт таблицы channel_hist
+    #
 
     # TO DO: Выполнить обновление постов и истории для всей базы
     #
@@ -123,9 +129,9 @@ async def get_channels(client: Client) -> list[int]:
         if i < settings.analyst.numb_channels_process:
 
                                 #     FOR DEBUGGING
-            if dialog.chat.id in (-1001373128436, -1001920826299, -1001387835436, -1001490689117) :
+            # if dialog.chat.id in (-1001373128436, -1001920826299, -1001387835436, -1001490689117) :
                                 #       FOR PROD
-            # if dialog.chat.type in (ChatType.SUPERGROUP, ChatType.CHANNEL) :
+            if dialog.chat.type in (ChatType.SUPERGROUP, ChatType.CHANNEL) :
                 logger.info(f'channel/group has been added for downloading: {dialog.chat.id} - {dialog.chat.title}')
                 res.append(dialog.chat.id)
                 i += 1
@@ -140,7 +146,7 @@ async def recreate_all_table() -> bool:
     if not db.create_table(table_name='channel',
                            columns_statement='''
                                 id int8 NOT NULL,
-                                username varchar(50) NOT NULL,
+                                username varchar(50) NULL,
                                 title varchar(100) NOT NULL, 
                                 category varchar(25) NULL, 
                                 creation_time timestamp NULL,
@@ -236,8 +242,8 @@ async def another_run(client: Client) :
             logger.error('Error: there is no connection to the database...')
             return False
 
-        # channels = await get_channels(client)
-        channels = [-1001373128436, -1001920826299, -1001387835436, -1001490689117]
+        channels = await get_channels(client)
+        # channels = [-1001373128436, -1001920826299, -1001387835436, -1001490689117]
 
         if not (await update_all(client=client, channels=channels, update_time=datetime.now())) :
             logger.error('Error: updating of all database\'s tables has been unsuccessful...')
