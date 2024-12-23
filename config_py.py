@@ -63,45 +63,5 @@ _settings_json_string = pathlib.Path('config.json').read_text()
 settings = AppSettings.model_validate_json(_settings_json_string)
 
 
-# a class for working with the flag - the first launch of the application
-# (we use singleton pattern)
-class FirstRunFlag() :
-    __is_first_run_flag_instance = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls.__is_first_run_flag_instance is None :
-            cls.__is_first_run_flag_instance = super().__new__(cls)
-        return cls.__is_first_run_flag_instance
-
-    def __init__(self):
-        self.__flag = False
-        try :
-            with open('.first_run', 'r') as f :
-                # if the flag file exists, this is not the first launch of the application
-                # we are checking its integrity
-                if 'succeed' in f.read() :
-                    need_restore = False
-                else :
-                    need_restore = True
-
-            # we restore the flag file if necessary
-            if need_restore :
-                with open('.first_run', 'w') as f :
-                    f.write('succeed')
-
-        except FileNotFoundError as e:
-            # the flag-file is missing - this is the first launch of the application
-            self.__flag = True
-
-    def is_first(self) -> bool:
-        return self.__flag
-
-    def set_not_first(self) :
-        with open('.first_run', 'w') as f :
-            f.write('succeed')
-        self.__flag = False
-
-
-
 if __name__ == "__main__":
     print(settings.model_dump())

@@ -17,6 +17,7 @@ from typing import Dict, Union
 from pyrogram.errors import FloodWait
 
 from config_py import settings
+from app_status import app_status, AppStatusType
 
 
 plugins = dict(root=settings.pyrogram.plugins.root,
@@ -27,6 +28,7 @@ app = Client(name='test_pyrogram',
              api_id=settings.telegram.api_id,
              api_hash=settings.telegram.api_hash,
              plugins=plugins)
+
 
 my_group = 'My_test_group20242003'
 my_group_id = -1002330451219

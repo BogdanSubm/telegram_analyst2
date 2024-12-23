@@ -6,7 +6,7 @@ logger.debug('Loading <database> module')
 
 import asyncio
 import datetime
-from datetime import datetime
+from datetime import datetime, timedelta
 from pyrogram import Client
 from pyrogram.types import Message
 from pyrogram.enums import ParseMode, ChatType
@@ -16,14 +16,12 @@ from pyrogram.errors import FloodWait
 from typing import NamedTuple
 
 from pgdb import Database, Row, Rows
-from config_py import settings, FirstRunFlag
+from config_py import settings
 from normalizer import Normalizer
+from app_status import app_status, AppStatusType
 
-first_run_flag = FirstRunFlag() # let's find out: is this the first launch of our application
-
-db: Database | None = None   # global Database object
+# db: Database | None = None   # global Database object
 normalizer = Normalizer()
-
 
 # The data structures for save in database
 class DBChannel(Row) :       # record in <channel> table
@@ -33,14 +31,17 @@ class DBChannel(Row) :       # record in <channel> table
     category: str   # 'Аналитика' - channel category
     creation_time: datetime     # channel creation time
 
+class DBChannelHist(Row) :       # record in <channel_hist> table
+    channel_id: int     # channel id
+    update_time: datetime   # update time
+    subscribers: int    # number of subscribers of the channel
+
+
 
 async def get_channel_first_post_time(client, channel) -> datetime :
-    # TO DO: Определить время первой активности на канале
     async for msg in client.get_chat_history(channel, limit=2, offset_id=2) :
         first_message: Message = msg
-    logger.debug(f'first message id: {first_message.id}')
     return first_message.date
-    # return datetime.fromisoformat('2024-01-01 00:00:00.000')
 
 
 async def get_channel_information(client: Client, channel: int) -> DBChannel | None :
@@ -63,6 +64,10 @@ async def get_channel_information(client: Client, channel: int) -> DBChannel | N
 
 async def update_all(client: Client, channels: list[int] | None, update_time: datetime | None) -> bool:
     global normalizer
+    db: Database = Database(settings.database_connection)
+    if not db.is_connected :
+        return False
+
     if channels is None:
         # The value None of this parameter means that we will process channels from the <channel> table.
         res = db.read_rows(table_name='channel')
@@ -137,9 +142,9 @@ async def get_channels(client: Client) -> list[int]:
         if i < settings.analyst.numb_channels_process:
 
                                 #     FOR DEBUGGING
-            # if dialog.chat.id in (-1001373128436, -1001920826299, -1001387835436, -1001490689117) :
+            if dialog.chat.id in (-1001373128436, -1001920826299, -1001387835436, -1001490689117) :
                                 #       FOR PROD
-            if dialog.chat.type in (ChatType.SUPERGROUP, ChatType.CHANNEL) :
+            # if dialog.chat.type in (ChatType.SUPERGROUP, ChatType.CHANNEL) :
                 logger.info(f'channel/group has been added for downloading: {dialog.chat.id} - {dialog.chat.title}')
                 res.append(dialog.chat.id)
                 i += 1
@@ -150,8 +155,11 @@ async def get_channels(client: Client) -> list[int]:
     return res
 
 
-async def recreate_all_table() -> bool:
-    global db
+async def recreate_tables() -> bool:
+    db: Database = Database(settings.database_connection)
+    if not db.is_connected :
+        return False
+
     if not db.create_table(table_name='channel',
                            columns_statement='''
                                 id int8 NOT NULL,
@@ -166,12 +174,12 @@ async def recreate_all_table() -> bool:
     if not db.create_table(table_name='channel_hist',
                            columns_statement='''
                                 channel_id int8 NOT NULL,
-	                            update_time timestamp NOT NULL,
-	                            subscribers int4 NULL,
-	                            msg_count int4 NULL,
-	                            CONSTRAINT channel_hist_channel_fk FOREIGN KEY (channel_id) 
-	                                REFERENCES public.channel(id) ON UPDATE CASCADE
-	                            ''',
+                                update_time timestamp NOT NULL,
+                                subscribers int4 NULL,
+                                msg_count int4 NULL,
+                                CONSTRAINT channel_hist_channel_fk FOREIGN KEY (channel_id) 
+                                    REFERENCES public.channel(id) ON UPDATE CASCADE
+                                ''',
                            overwrite=True) : return False
 
     if not db.create_table(table_name='post',
@@ -188,7 +196,7 @@ async def recreate_all_table() -> bool:
                                 CONSTRAINT post_pk PRIMARY KEY (id),
                                 CONSTRAINT post_channel_fk FOREIGN KEY (channel_id) 
                                     REFERENCES public.channel(id) ON UPDATE CASCADE
-	                            ''',
+                                ''',
                            overwrite=True) : return False
 
     if not db.create_table(table_name='post_hist',
@@ -207,60 +215,91 @@ async def recreate_all_table() -> bool:
                            overwrite=True) : return False
     return True
 
+def get_full_day_time_stamp(time_now: datetime = datetime.now()) -> datetime:
+    time = time_now - timedelta(days=1)
+    return datetime(time.year, time.month, time.day, 23, 59, 59, 0)
 
-async def first_run(client: Client) -> Database | bool :
-    global db
-    db = Database(settings.database_connection)
+
+
+async def upload_all(client: Client, upload_time: datetime) -> bool:
+    global normalizer
+    db: Database = Database(settings.database_connection)
     if not db.is_connected :
-        logger.error('Error: there is no connection to the database...')
         return False
 
-    if first_run_flag.is_first() :
-        logger.info('The first launch, the beginning of initialization and filling')
-        logger.info('Resetting of all database\'s tables get started...')
-        if not (await recreate_all_table()) :
-            logger.error('Error: resetting of all database\'s tables has been unsuccessful...')
-            return False
-        logger.info('Resetting - ok!')
-        channels = await get_channels(client)
-        logger.info('Filling of all database\'s tables get started...')
-        if not (await update_all(client=client, channels=channels, update_time=datetime.now())) :
-            logger.error('Error: filling of all database\'s tables has been unsuccessful...')
-            return False
-        logger.info('Filling - ok!')
-        logger.info('Successful installation!')
+    async for dialog in client.get_dialogs() :
 
-        #    FOR DEBUGGING, PLACE A COMMENT SYMBOL IN FRONT OF THE LINE BELOW
-        # first_run_flag.set_not_first()
+            #     FOR DEBUGGING
+        if dialog.chat.id in (-1001373128436, -1001920826299, -1001387835436, -1001490689117) :
+            #       FOR PROD
+        # if dialog.chat.type in (ChatType.SUPERGROUP, ChatType.CHANNEL) :
+            logger.info(f'channel loading: {dialog.chat.id} - {dialog.chat.title}')
+            channel_first_post_time = await normalizer.run(get_channel_first_post_time,
+                                                                client,
+                                                                dialog.chat.id)
 
-        return True
-    else :
-        logger.info('This is not the first launch app, the database is connected...')
-        return True
+            res = db.insert_rows(
+                table_name='channel',
+                values=(
+                    DBChannel(
+                        id=dialog.chat.id,
+                        username=dialog.chat.username,
+                        title=dialog.chat.title,
+                        category='DA',
+                        creation_time=channel_first_post_time
+                    ),
+                )
+            )
+            logger.info(f'channel has {"" if res.is_successful else "not "} been added ')
+
+            res = db.insert_rows(
+                table_name='channel_hist',
+                values=(
+                    DBChannelHist(
+                        channel_id=dialog.chat.id,
+                        update_time=upload_time,
+                        subscribers=dialog.chat.members_count
+                    ),
+                )
+            )
+            logger.info(f'channel history has {"" if res.is_successful else "not "}been added')
+
+            # else:
+            #     logger.error(f'Error: it is not possible to get information to add'
+            #                  f' on the channel with the ID #: {ch}')
+
+        # await asyncio.sleep(delay=1)
+
+    return True
 
 
-async def another_run(client: Client) :
-    global db
-
-    if first_run_flag.is_first() :
-        logger.warning('Error: the first launch, initialization and filling is required.')
+async def run_processing(client: Client) :
+    db: Database = Database(settings.database_connection)
+    if not db.is_connected :
         return False
-    else :
-        db = Database(settings.database_connection)
-        if not db.is_connected :
-            logger.error('Error: there is no connection to the database...')
-            return False
 
-        channels = await get_channels(client)
-        # channels = [-1001373128436, -1001920826299, -1001387835436, -1001490689117]
+    match app_status.status :
+        case AppStatusType.FIRST_RUN :
+            logger.info('First run, uploading all data has been started...')
+            if not await upload_all(client=client, upload_time=get_full_day_time_stamp()) :
+                logger.error('Error: updating of all database\'s tables has been unsuccessful...')
+                return False
+            logger.info('Uploading - ok!')
 
-        if not (await update_all(client=client, channels=channels, update_time=datetime.now())) :
-            logger.error('Error: updating of all database\'s tables has been unsuccessful...')
-            return False
-        logger.info('Updating - ok!')
+        case AppStatusType.PROCESS_RUN :
+            pass
+
+        case AppStatusType.UPDATE_RUN :
+            pass
+
+        case _: pass
 
 
-        return True
+    return True
+
+
+async def list_channels_update(client: Client) -> bool:
+    return True
 
 
 if __name__ == '__mail__' :

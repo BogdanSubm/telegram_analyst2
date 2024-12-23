@@ -46,7 +46,7 @@ class Database :
             cls.__db_instance = super().__new__(cls)
         return cls.__db_instance
 
-    def __init__(self, db_connect_set: DBConnectionSettings) :
+    def __init__(self, db_connect_set: DBConnectionSettings)  -> object:
         ''' Constructor '''
         self.db_connect_set = db_connect_set
         try :
