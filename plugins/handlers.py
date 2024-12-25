@@ -1,7 +1,7 @@
 # Handlers module
 
 from logger import logger
-logger.debug('Loading handlers module')
+logger.debug('Loading <handlers> module')
 
 from pyrogram import Client, filters
 from pyrogram.types import Message
@@ -62,9 +62,9 @@ async def command_handler(client: Client, message: Message) :
                         logger.info('<app_status.status> has inappropriate value. '
                                     'Resetting tables has not been performed.')
                         await message.reply('The resetting was unsuccessful...\n'
-                                        'This may not be the first time the application has been\n'
-                                        'launched, and resetting tables and processing have already\n'
-                                        'been performed.'
+                                        'This may not be the first time the application has been '
+                                        'launched, and resetting tables and processing have already '
+                                        'been performed.\n'
                                         'For reset all tables delete <.app_status> file '
                                         'in root app directory.')
 

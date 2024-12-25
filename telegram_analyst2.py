@@ -4,7 +4,7 @@ main module
 import logging
 from logger import get_logger, logger
 logger = get_logger(logging.DEBUG, to_file=False)
-logger.debug('Loading <mylogger> module')
+logger.debug('Loading <logger> module')
 logger.debug('Starting main module <telegram_analyst2>')
 
 

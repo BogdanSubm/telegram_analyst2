@@ -22,7 +22,7 @@ class DBConnectionSettings(BaseModel) :
     port: PositiveInt = Field(default=5432, description='connection port')
     dbname: str = Field(default='tg_analyst2', description='connection data base name')
     user: str = Field(default='postgres', description='connection user')
-    password: str = Field(default='123456', exclude=True, description='connection password')
+    password: str = Field(default='123456', description='connection password')
 
 class LogSettings(BaseModel) :
     path: str = Field(default='.log', description='path to save log files')

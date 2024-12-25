@@ -57,7 +57,7 @@ class Database :
             self.is_connected = True
 
         except Exception as e :
-            logger.error('An error occurred while connecting database: {e}')
+            logger.error(f'An error occurred while connecting database: {e}')
             self.is_connected = False
 
 
