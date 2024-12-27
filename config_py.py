@@ -41,6 +41,11 @@ class AnalystSettings(BaseModel) :
                                      description='start time of the analysis period')
     numb_channels_process: PositiveInt = Field(default=10, description='limiting the number of channels '
                                                                        'for the first download')
+    size_text_fragment_for_save: PositiveInt = Field(default=256,
+                                    description='the size of the text fragment from <text> (or <caption>)'
+                                                ' field of the <Message> object to be saved')
+    chunk_size_for_db_ops: PositiveInt = Field(default=100, description='the chunk size for a one-time'
+                                                                        ' group database operation')
 
 # class TelegramNormalizerSettings(BaseModel) :
 #     api_call_before_pause: PositiveInt = Field(default=10,

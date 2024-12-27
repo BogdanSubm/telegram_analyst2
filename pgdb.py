@@ -27,7 +27,7 @@ from config_py import DBConnectionSettings
 
 # Type's hints
 Row = NamedTuple
-Rows = tuple[Row]
+Rows = tuple[Row, ...]
 ConnectionType = psycopg2.extensions.connection
 
 # The data structure returned by most methods
