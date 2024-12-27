@@ -7,7 +7,7 @@ if __name__ != '__main__' :
 import enum
 class AppStatusType(enum.StrEnum) :
     NOT_RUNNING = 'not running'
-    FIRST_RUN = 'first app run'
+    FIRST_RUN = 'first run'
     PROCESS_RUN = 'processing'
     UPDATE_RUN = 'update'
     APP_STOPPED = 'stopped'

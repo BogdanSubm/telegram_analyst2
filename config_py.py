@@ -46,6 +46,8 @@ class AnalystSettings(BaseModel) :
                                                 ' field of the <Message> object to be saved')
     chunk_size_for_db_ops: PositiveInt = Field(default=100, description='the chunk size for a one-time'
                                                                         ' group database operation')
+    media_group_post_ordering_base: int = Field(default=1, ge=0, le=1, description='the base for numbering '
+                                                                                   'posts in a media group')
 
 # class TelegramNormalizerSettings(BaseModel) :
 #     api_call_before_pause: PositiveInt = Field(default=10,
