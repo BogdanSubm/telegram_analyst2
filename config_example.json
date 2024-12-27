@@ -2,7 +2,7 @@
     "telegram": {
         "api_id": __your_api__,
         "api_hash": "____________your_hash_______________",
-        "bot_auth_token": "__________you_bot_token_(not_applicable_yet)_________",
+        "bot_auth_token": "_______any_text__-__not_applicable_yet!_______",
         "api_calls_per_minute": 60,
         "api_idle_reset_time": 300
     },
@@ -27,6 +27,8 @@
     },
     "analyst": {
         "analyzing_from": "2024-10-01 00:00:00.000",
-        "numb_channels_process" : 1000
+        "numb_channels_process" : 500,
+        "size_text_fragment_for_save" : 256,
+        "chunk_size_for_db_ops": 100
     }
 }
