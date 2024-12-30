@@ -4,13 +4,13 @@ logger.debug('Loading <normalizer> module')
 
 import asyncio
 from pyrogram.errors import FloodWait
-from typing import Any, Callable
-from datetime import datetime, timedelta
+from typing import Any
+from datetime import datetime
 
 from config_py import settings
 
 # a class for prevent a ban for a flood in Telegram (we use singleton pattern)
-class Normalizer() :
+class Normalizer :
     __normalizer_instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -23,7 +23,7 @@ class Normalizer() :
         self.__calls_per_minute = settings.telegram.api_calls_per_minute
         self.__delta = 60 / self.__calls_per_minute
 
-    async def run(self, func, *args, **kwargs) -> Any :
+    async def run(self, func = None, *args, **kwargs) -> Any | None :
         while True:
             try:
                 delta = (datetime.now() - self.__last_call).total_seconds()
@@ -35,7 +35,10 @@ class Normalizer() :
                     self.__delta = 60 / self.__calls_per_minute
 
                 self.__last_call = datetime.now()
-                res = await func(*args, **kwargs)
+                if func is not None :
+                    res = await func(*args, **kwargs)
+                else:
+                    res = None
 
             except FloodWait as e :
                 logger.error(f'Telegram warning:{e}')

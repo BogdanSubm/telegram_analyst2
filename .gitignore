@@ -1,6 +1,6 @@
 .venv
 .log
-.env
-.first_run
+trash
+.app_status
 config.json
 *.session
