@@ -9,15 +9,13 @@ logger.debug('Starting main module <telegram_analyst2>')
 
 
 import asyncio
-from pyrogram import Client, idle, filters, raw, types
-from pyrogram.types import Message, Dialog
-from pyrogram.enums import ParseMode, ChatType
-from pyrogram.handlers import MessageHandler, RawUpdateHandler
-from typing import Dict, Union
-from pyrogram.errors import FloodWait
+from pyrogram import Client
+from datetime import datetime
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from config_py import settings
-from app_status import app_status, AppStatusType
+from app_status import app_status, running_status, AppStatusType
+
 
 
 plugins = dict(root=settings.pyrogram.plugins.root,
@@ -40,14 +38,29 @@ simulative_cht = 'itresume_chat'       # an outside supergroup
 #     await message.edit_text(text=f'--{message.text}--', parse_mode=ParseMode.MARKDOWN)
 #     mylogger.info(f'handling new typing message: {message.id}, {message.text}')
 
+def tick():
+    print(f"Tick! The time is: {datetime.now()}")
 
 async def main() :
 
-    async with app :
-        await app.send_message('me', 'Telegram_analyst2 is running, to find out the commands, type: /help')
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(tick, "interval", seconds=4)
+    first_enter = True
 
-        await idle()
+    # scheduler.add_job(id='data_r_mess_new', func=data_r_mess_new, trigger='cron', hour=8, minute=0, second=0)
+    # scheduler.start()
 
+
+    # async with app :
+    await app.start()
+    await app.send_message('me', 'Telegram_analyst2 is running, to find out the commands, type: /help')
+        # await idle()
+    while running_status.status :
+        if first_enter:
+            scheduler.start()
+            first_enter = False
+        await asyncio.sleep(2)
+    await app.stop()
 
 if __name__ == '__main__':
     app.run(main())

@@ -1,3 +1,4 @@
+from config_py import AppSettings
 
 if __name__ != '__main__' :
     from logger import logger
@@ -11,6 +12,20 @@ class AppStatusType(enum.StrEnum) :
     PROCESS_RUN = 'processing'
     UPDATE_RUN = 'update'
     APP_STOPPED = 'stopped'
+
+
+class AppRunningStatus():
+    def __init__(self):
+        self.__status = True
+
+    @property
+    def status(self):
+        return self.__status
+
+    def set_off(self):
+        self.__status = False
+
+running_status = AppRunningStatus()
 
 
 # the class for working with the flag that is about the current status of the application

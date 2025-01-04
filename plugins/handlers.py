@@ -7,8 +7,8 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 import enum
 
-from database import recreate_tables, run_processing, list_channels_update
-from app_status import app_status, AppStatusType
+from database import recreate_tables, run_processing, list_channels_update, run_debug
+from app_status import app_status, running_status, AppStatusType
 
 
 class BotCommand(enum.StrEnum) :
@@ -17,12 +17,14 @@ class BotCommand(enum.StrEnum) :
     UPDATE = '/update'
     HELP = '/help'
     STOP = '/stop'
+    DEBUG = '/debug'
 
 command_list = [ _[1:] for _ in [BotCommand.INSTALL,
                                  BotCommand.START,
                                  BotCommand.UPDATE,
                                  BotCommand.HELP,
-                                 BotCommand.STOP]]
+                                 BotCommand.STOP,
+                                 BotCommand.DEBUG]]
 
 
 # is_started = False      # start main bot process flag
@@ -44,79 +46,91 @@ command_list = [ _[1:] for _ in [BotCommand.INSTALL,
 # Handlers
 @Client.on_message(filters.command(command_list))
 async def command_handler(client: Client, message: Message) :
+
     logger.info(f'the "{message.text}" command has been entered')
 
-    if app_status.status != AppStatusType.APP_STOPPED :
-        match message.text :
-            case BotCommand.INSTALL :
-                match app_status.status :
-                    case AppStatusType.NOT_RUNNING | AppStatusType.FIRST_RUN :
-                        if await recreate_tables() :
-                            app_status.status = AppStatusType.FIRST_RUN
-                            logger.info('Resetting - ok.')
-                            await message.reply('Resetting - ok!\nWe are ready to start.')
-                        else :
-                            logger.info('Error resetting database...')
-                            await message.reply('Error resetting database...')
-                    case _:
-                        logger.info('<app_status.status> has inappropriate value. '
-                                    'Resetting tables has not been performed.')
-                        await message.reply('The resetting was unsuccessful...\n'
-                                        'This may not be the first time the application has been '
-                                        'launched, and resetting tables and processing have already '
-                                        'been performed.\n'
-                                        'For reset all tables delete <.app_status> file '
-                                        'in root app directory.')
+    match message.text :
 
-            case BotCommand.START :
-                match app_status.status :
-                    case AppStatusType.FIRST_RUN :
-                        await message.reply('First run processing, uploading data, please wait...')
-                        if await run_processing(client) :
-                            app_status.status = AppStatusType.PROCESS_RUN
-                            await message.reply('Processing has been started successful.')
-                        else :
-                            await message.reply('Error when starting processing...')
+        case BotCommand.INSTALL :
+            match app_status.status :
 
-                    case AppStatusType.PROCESS_RUN :
-                        if await run_processing(client) :
-                            app_status.status = AppStatusType.PROCESS_RUN
-                            await message.reply('Processing has been started successful.')
-                        else :
-                            await message.reply('Error when starting processing...')
+                case AppStatusType.NOT_RUNNING | AppStatusType.FIRST_RUN :
+                    if await recreate_tables() :
+                        app_status.status = AppStatusType.FIRST_RUN
+                        logger.info('Resetting - ok.')
+                        await message.reply('Resetting - ok!\nWe are ready to start.')
+                    else :
+                        logger.info('Error resetting database...')
+                        await message.reply('Error resetting database...')
 
-                    case AppStatusType.NOT_RUNNING:
-                        logger.info('The first launch, resetting is required.')
-                        await message.reply('Sorry, the first launch, resetting is required...')
+                case _:
+                    logger.info('<app_status.status> has inappropriate value. '
+                                'Resetting tables has not been performed.')
+                    await message.reply('The resetting was unsuccessful...\n'
+                                    'This may not be the first time the application has been '
+                                    'launched, and resetting tables and processing have already '
+                                    'been performed.\n'
+                                    'For reset all tables delete <.app_status> file '
+                                    'in root app directory.')
 
-            case BotCommand.UPDATE :
-                await list_channels_update(client)
-            #         await message.reply('The update was successful...')
-            #     else :
-            #         await message.reply('Sorry, updating has not been successfully ...')
-            # else :
-            #     await message.reply('It will be available after the main processing is started...')
+        case BotCommand.START :
+            match app_status.status :
 
-            case BotCommand.HELP :
-                await message.reply(
-                    f'Available commands:\n'
-                    f'  {BotCommand.INSTALL} - 1-th run (reset all database\'s tables)\n'
-                    f'  {BotCommand.START} - starting processing\n'
-                    f'  {BotCommand.UPDATE} - updating the list of processing channels\n'
-                    f'  {BotCommand.HELP} - list of commands\n'
-                    f'  {BotCommand.STOP} - stopping processing\n'
-                )
+                case AppStatusType.FIRST_RUN :
+                    await message.reply('First run processing, uploading data, please wait...')
+                    if await run_processing(client) :
+                        app_status.status = AppStatusType.PROCESS_RUN
+                        await message.reply('Processing has been started successful.')
+                    else :
+                        await message.reply('Error when starting processing...')
 
-            case BotCommand.STOP :
-                # if db:
-                #     db.close_connection()
-                # is_stopped = True
-                app_status.status = AppStatusType.APP_STOPPED
-                await message.reply('Processing has been stopped...')
-                # await client.stop()
-    else :
-        logger.info(f'Processing has already been stopped.')
-        await message.reply('Processing is stopped, commands are unavailable!')
+                case AppStatusType.APP_STOPPED :
+                    # starting after stopping from the app
+                    if await run_processing(client) :
+                        app_status.status = AppStatusType.PROCESS_RUN
+                        await message.reply('Processing has been started successful (starting after stopping from the app).')
+                    else :
+                        await message.reply('Error when starting processing...')
+
+                case AppStatusType.PROCESS_RUN :
+                    # starting after crash the app
+                    if await run_processing(client) :
+                        app_status.status = AppStatusType.PROCESS_RUN
+                        await message.reply('Processing has been started successful (starting after crash the app).')
+                    else :
+                        await message.reply('Error when starting processing...')
+
+                case AppStatusType.NOT_RUNNING:
+                    logger.info('The first launch, resetting is required.')
+                    await message.reply('Sorry, the first launch, resetting is required...')
+
+        case BotCommand.UPDATE :
+
+            await list_channels_update(client)
+        #         await message.reply('The update was successful...')
+        #     else :
+        #         await message.reply('Sorry, updating has not been successfully ...')
+        # else :
+        #     await message.reply('It will be available after the main processing is started...')
+
+        case BotCommand.HELP :
+            await message.reply(
+                f'Available commands:\n'
+                f'  {BotCommand.INSTALL} - 1-th run (reset all database\'s tables)\n'
+                f'  {BotCommand.START} - starting processing\n'
+                f'  {BotCommand.UPDATE} - updating the list of processing channels\n'
+                f'  {BotCommand.HELP} - list of commands\n'
+                f'  {BotCommand.STOP} - stopping processing\n'
+            )
+
+        case BotCommand.STOP :
+            app_status.status = AppStatusType.APP_STOPPED
+            running_status.set_off()
+            await message.reply('Processing has been stopped...')
+
+        case BotCommand.DEBUG :
+            await run_debug(client)
+
 
 
 # @Client.on_message(is_started_filter & filters.chat('me') & msg_bot_filter)
