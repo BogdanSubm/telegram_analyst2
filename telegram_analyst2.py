@@ -11,7 +11,7 @@ logger.debug('Starting main module <telegram_analyst2>')
 import asyncio
 from pyrogram import Client
 from datetime import datetime
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from scheduler import AppScheduler
 
 from config_py import settings
 from app_status import app_status, running_status, AppStatusType
@@ -38,14 +38,22 @@ simulative_cht = 'itresume_chat'       # an outside supergroup
 #     await message.edit_text(text=f'--{message.text}--', parse_mode=ParseMode.MARKDOWN)
 #     mylogger.info(f'handling new typing message: {message.id}, {message.text}')
 
-def tick():
-    print(f"Tick! The time is: {datetime.now()}")
+# def tick():
+#     print(f"Tick! The time is: {datetime.now()}")
+#
+# def tick2():
+#     print(f"Tick! The time is: {datetime.now()} 2!")
+
+#
+# app_scheduler = AppScheduler()
+# app_scheduler.add_task(func=tick, trigger='interval', seconds=4)
+# for i in range(60) :
+#     for j in range(10) :
+#         minute = 23
+#         app_scheduler.add_task(func=tick2, trigger='cron', hour=14, minute=minute+j, second=i)
+
 
 async def main() :
-
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(tick, "interval", seconds=4)
-    first_enter = True
 
     # scheduler.add_job(id='data_r_mess_new', func=data_r_mess_new, trigger='cron', hour=8, minute=0, second=0)
     # scheduler.start()
@@ -56,11 +64,15 @@ async def main() :
     await app.send_message('me', 'Telegram_analyst2 is running, to find out the commands, type: /help')
         # await idle()
     while running_status.status :
-        if first_enter:
-            scheduler.start()
-            first_enter = False
+        # app_scheduler.start()
         await asyncio.sleep(2)
+
+    # app_scheduler.print_tasks()
+    # app_scheduler.stop()   #wait=False)
+    # app_scheduler.print_tasks()
     await app.stop()
+
+    logger.info('The application was stopped at the user\'s command.')
 
 if __name__ == '__main__':
     app.run(main())

@@ -34,6 +34,21 @@ from reaction import TGReactions, get_post_reactions
 # db: Database | None = None   # global Database object
 normalizer = Normalizer()
 
+class ChannelList :
+    def __init__(self, init_list=['me']) :
+        self.__channel_list = init_list
+
+    @property
+    def lst(self) :
+        return self.__channel_list
+
+    @lst.setter
+    def lst(self, new_list: list) :
+        self.__channel_list = new_list
+
+
+channels = ChannelList()
+
 
 # The data structures for save in database
 class DBChannel(Row) :       # record in <channel> table
@@ -541,7 +556,7 @@ async def update_posts(db: Database, client: Client, channel: Chat) -> bool :
     # messages.reverse()
     # media_groups_messages.reverse()
 
-    res1 = await get_posts(client=client, db=db, messages=messages, upload_time=upload_time)
+    # res1 = await get_posts(client=client, db=db, messages=messages, upload_time=upload_time)
 
     res1 = res2 = False
     try :
@@ -756,7 +771,9 @@ async def run_processing(client: Client) :
                 return False
             logger.info('Uploading - ok!')
 
-        case AppStatusType.PROCESS_RUN :
+        case AppStatusType.PROCESS_RUN | AppStatusType.APP_STOPPED :
+            channels.lst = [-1002330451219]
+                # , -1001150636847,-1001999600137,-1001407735984,-1001387835436,-1001434942369,-1001247460025,-1001269328727,-1001119907458,-1002173481054,-1001140040257,-1001720833502,-1001786987818,-1001039255739,-1001684696497,-1001375960541,-1001684146975,-1001646511362,-1001852630630,-1002075081423,-1001863771680,-1001507734288,-1001164672298,-1001555979359,-1001654432419,-1001713271750,-1002061202990,-1001329188755,-1001648137205,-1002017388853,-1002160874756,-1001513592482,-1001178238337,-1001601022378,-1001756387595,-1001408836166,-1001638862576,-1001610037070,-1001580761898,-1001920826299,-1001373128436,-1001490689117,-1001618735800,-1001117681513,-1001573892445,-1002243195124,-1001542820616,-1001195518065,-1001937140822,-1001286050825,-1001788488602,-1001052741705,-1001439011975,-1001451120475,-1001081286887,-1001682401578,-1001160069287,-1001702796681,-1002100634882,-1001983260268,-1002125857137,-1001544737980,-1001576767771,-1001850344604,-1001903546969,-1001417960831,-1002146883464,-1001533350227,-1001752641311,-1001503786901,-1001212864285,-1001217403746,-1001638304350,-1001556054484,-1001414693404,-1001375051700,-1001217426310,-1001972927572,-1001860277066,-1001155412393,-1001223651429,-1001240501786,-1001336087232,-1001526752830,-1002329275862,-1002479064953,-1001265941657,-1001567847129,-1002312481032,-1001586330290,-1001354117866,-1001706328181,-1001625951959,-1002376985514,-1001633110548,-1001315746544,-1001314600216,-1001576490999,-1002038340948,-1001066811392,-1001181269908,-1001437741565,-1002188344885,-1002319527378,-1001621747845]
             pass
 
         case AppStatusType.UPDATE_RUN :
@@ -764,6 +781,7 @@ async def run_processing(client: Client) :
 
         case _: pass
 
+    db.close_connection()
 
     return True
 
@@ -780,13 +798,19 @@ from pyrogram import utils
 
 
 async def run_debug(client: Client) :
-    chat_id = -1001720833502
+
+
+    # chat_id = -1001720833502
     # msg_id = [4412, 4413, 4414, 4415, 4416, 4417, 4418, 4419, 4420]
     # msg = await client.get_messages(chat_id, msg_id)
 
-
     # msg_id = 4418
-    msg_id = 5846
+    # msg_id = 5846
+
+    chat_id = -1002330451219
+    msg_id = 67
+
+    logger.debug(await client.get_media_group(chat_id=chat_id, message_id=msg_id))
 
     # chat_id = -1001694201893
     # msg_id_comm = 32515
@@ -848,9 +872,9 @@ async def run_debug(client: Client) :
     # logger.debug(f'{len(res5)}, {res5}')
 
     # for _ in range(32) :
-    for _ in range(3) :
-        async with asyncio.TaskGroup() as tg :
-            task1 = tg.create_task(get_chat_history_chunk(client, chat_id=chat_id, chunk_size=200, offset_id=5500))
+    # for _ in range(3) :
+    #     async with asyncio.TaskGroup() as tg :
+    #         task1 = tg.create_task(get_chat_history_chunk(client, chat_id=chat_id, chunk_size=200, offset_id=5500))
     #         # task2 = tg.create_task(get_chat_history_chunk(client, chat_id=chat_id, chunk_size=400, offset_id=4500))
     #         # task3 = tg.create_task(get_chat_history_chunk(client, chat_id=chat_id, chunk_size=400, offset_id=4000))
     #         # task4 = tg.create_task(get_chat_history_chunk(client, chat_id=chat_id, chunk_size=400, offset_id=3500))
@@ -858,7 +882,7 @@ async def run_debug(client: Client) :
     #         # task6 = tg.create_task(get_chat_history_chunk(client, chat_id=chat_id, chunk_size=400, offset_id=2500))
     #         # task7 = tg.create_task(get_chat_history_chunk(client, chat_id=chat_id, chunk_size=400, offset_id=2000))
     #
-        res1 = task1.result()
+        # res1 = task1.result()
     #     # res2 = task2.result()
     #     # res3 = task3.result()
     #     # res4 = task4.result()
@@ -873,8 +897,8 @@ async def run_debug(client: Client) :
     #     # logger.debug(f'{len(res6)}, {res6}')
     #     # logger.debug(f'{len(res7)}, {res7}')
     #
-        await normalizer.run()
-        logger.debug('normalizer - run')
+        # await normalizer.run()
+        # logger.debug('normalizer - run')
         # pause = 1
         # logger.debug(f'Pause - {pause} sec.')
         # await asyncio.sleep(pause)

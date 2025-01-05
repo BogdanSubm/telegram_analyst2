@@ -189,6 +189,6 @@ class Database :
         ''' Closing the database connection '''
         try :
             self.connect.close()
-            print('The connection to the database is closed.')
+            logger.debug('The connection to the database is closed.')
         except Exception as e :
-            print(f"An error occurred when closing the connection: {e}")
+            logger.debug(f'An error occurred when closing the connection: {e}')

@@ -7,9 +7,8 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 import enum
 
-from database import recreate_tables, run_processing, list_channels_update, run_debug
+from database import recreate_tables, run_processing, list_channels_update, run_debug, channels
 from app_status import app_status, running_status, AppStatusType
-
 
 class BotCommand(enum.StrEnum) :
     INSTALL = '/install'
@@ -27,34 +26,34 @@ command_list = [ _[1:] for _ in [BotCommand.INSTALL,
                                  BotCommand.DEBUG]]
 
 
-# is_started = False      # start main bot process flag
-# is_stopped = False      # stop main bot process flag
-
-
 # Filters
-# async def func_is_started(_, __, query: Message) -> bool:
-#     return is_started
 
-# is_started_filter = filters.create(func_is_started)
+async def func_is_processing(_, __, query: Message) -> bool:
+    return app_status.status == AppStatusType.PROCESS_RUN
 
-# async def func_bot_filter(_, __, message: Message) -> bool:
-#     return not message.from_user.is_bot
-#
-# msg_bot_filter = filters.create(func_bot_filter)
+is_processing_filter = filters.create(func_is_processing)
+
+
+async def func_channel_filter(_, __, message: Message) -> bool:
+    return message.chat.id in channels.lst
+
+from_channel_filter = filters.create(func_channel_filter)
+
+
 
 
 # Handlers
+
 @Client.on_message(filters.command(command_list))
 async def command_handler(client: Client, message: Message) :
-
     logger.info(f'the "{message.text}" command has been entered')
 
     match message.text :
-
         case BotCommand.INSTALL :
-            match app_status.status :
 
+            match app_status.status :
                 case AppStatusType.NOT_RUNNING | AppStatusType.FIRST_RUN :
+
                     if await recreate_tables() :
                         app_status.status = AppStatusType.FIRST_RUN
                         logger.info('Resetting - ok.')
@@ -64,6 +63,7 @@ async def command_handler(client: Client, message: Message) :
                         await message.reply('Error resetting database...')
 
                 case _:
+
                     logger.info('<app_status.status> has inappropriate value. '
                                 'Resetting tables has not been performed.')
                     await message.reply('The resetting was unsuccessful...\n'
@@ -74,9 +74,10 @@ async def command_handler(client: Client, message: Message) :
                                     'in root app directory.')
 
         case BotCommand.START :
-            match app_status.status :
 
+            match app_status.status :
                 case AppStatusType.FIRST_RUN :
+
                     await message.reply('First run processing, uploading data, please wait...')
                     if await run_processing(client) :
                         app_status.status = AppStatusType.PROCESS_RUN
@@ -85,27 +86,31 @@ async def command_handler(client: Client, message: Message) :
                         await message.reply('Error when starting processing...')
 
                 case AppStatusType.APP_STOPPED :
+
                     # starting after stopping from the app
                     if await run_processing(client) :
                         app_status.status = AppStatusType.PROCESS_RUN
                         await message.reply('Processing has been started successful (starting after stopping from the app).')
+                        await message.reply(f'Processing from <STOPPED> for channel: {channels.lst}')
                     else :
                         await message.reply('Error when starting processing...')
 
                 case AppStatusType.PROCESS_RUN :
+
                     # starting after crash the app
                     if await run_processing(client) :
                         app_status.status = AppStatusType.PROCESS_RUN
                         await message.reply('Processing has been started successful (starting after crash the app).')
+                        await message.reply(f'Processing from <RUN> for channel: {channels.lst}')
                     else :
                         await message.reply('Error when starting processing...')
 
                 case AppStatusType.NOT_RUNNING:
+
                     logger.info('The first launch, resetting is required.')
                     await message.reply('Sorry, the first launch, resetting is required...')
 
         case BotCommand.UPDATE :
-
             await list_channels_update(client)
         #         await message.reply('The update was successful...')
         #     else :
@@ -114,6 +119,7 @@ async def command_handler(client: Client, message: Message) :
         #     await message.reply('It will be available after the main processing is started...')
 
         case BotCommand.HELP :
+
             await message.reply(
                 f'Available commands:\n'
                 f'  {BotCommand.INSTALL} - 1-th run (reset all database\'s tables)\n'
@@ -124,16 +130,19 @@ async def command_handler(client: Client, message: Message) :
             )
 
         case BotCommand.STOP :
+
             app_status.status = AppStatusType.APP_STOPPED
             running_status.set_off()
             await message.reply('Processing has been stopped...')
 
         case BotCommand.DEBUG :
+
             await run_debug(client)
 
 
 
-# @Client.on_message(is_started_filter & filters.chat('me') & msg_bot_filter)
-# async def echo(client, message: Message) :
-#     await client.send_message('me', f'Новое сообщение в канале: {message.chat.title} >  '
-#                            f'{message.text}')
+# @Client.on_message(is_processing_filter & filters.chat(chats=channels.lst))
+@Client.on_message(is_processing_filter & from_channel_filter & ~filters.service)
+async def echo(client, message: Message) :
+    logger.debug(message)
+    await client.send_message('me', f'Новое сообщение в канале: {message.chat.title} > {message.id}')
