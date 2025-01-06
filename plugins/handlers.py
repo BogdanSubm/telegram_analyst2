@@ -27,17 +27,17 @@ command_list = [ _[1:] for _ in [BotCommand.INSTALL,
 
 
 # Filters
-
-async def func_is_processing(_, __, query: Message) -> bool:
-    return app_status.status == AppStatusType.PROCESS_RUN
-
-is_processing_filter = filters.create(func_is_processing)
-
-
-async def func_channel_filter(_, __, message: Message) -> bool:
-    return message.chat.id in channels.lst
-
-from_channel_filter = filters.create(func_channel_filter)
+#
+# async def func_is_processing(_, __, query: Message) -> bool:
+#     return app_status.status == AppStatusType.PROCESS_RUN
+#
+# is_processing_filter = filters.create(func_is_processing)
+#
+#
+# async def func_channel_filter(_, __, message: Message) -> bool:
+#     return message.chat.id in channels.lst
+#
+# from_channel_filter = filters.create(func_channel_filter)
 
 
 
@@ -91,7 +91,6 @@ async def command_handler(client: Client, message: Message) :
                     if await run_processing(client) :
                         app_status.status = AppStatusType.PROCESS_RUN
                         await message.reply('Processing has been started successful (starting after stopping from the app).')
-                        await message.reply(f'Processing from <STOPPED> for channel: {channels.lst}')
                     else :
                         await message.reply('Error when starting processing...')
 
@@ -101,7 +100,6 @@ async def command_handler(client: Client, message: Message) :
                     if await run_processing(client) :
                         app_status.status = AppStatusType.PROCESS_RUN
                         await message.reply('Processing has been started successful (starting after crash the app).')
-                        await message.reply(f'Processing from <RUN> for channel: {channels.lst}')
                     else :
                         await message.reply('Error when starting processing...')
 
@@ -142,7 +140,7 @@ async def command_handler(client: Client, message: Message) :
 
 
 # @Client.on_message(is_processing_filter & filters.chat(chats=channels.lst))
-@Client.on_message(is_processing_filter & from_channel_filter & ~filters.service)
-async def echo(client, message: Message) :
-    logger.debug(message)
-    await client.send_message('me', f'Новое сообщение в канале: {message.chat.title} > {message.id}')
+# @Client.on_message(is_processing_filter & from_channel_filter & ~filters.service)
+# async def echo(client, message: Message) :
+#     logger.debug(message)
+#     await client.send_message('me', f'Новое сообщение в канале: {message.chat.title} > {message.id}')

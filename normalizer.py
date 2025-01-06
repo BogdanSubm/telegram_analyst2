@@ -1,4 +1,5 @@
 # api call flow normalizer
+# from database import normalizer
 from logger import logger
 logger.debug('Loading <normalizer> module')
 
@@ -8,6 +9,8 @@ from typing import Any
 from datetime import datetime
 
 from config_py import settings
+# global normalizer
+
 
 # a class for prevent a ban for a flood in Telegram (we use singleton pattern)
 class Normalizer :
@@ -55,6 +58,9 @@ class Normalizer :
                 return None
 
             return res
+
+
+normalizer = Normalizer()
 
 
 # API_CALL_BEFORE_PAUSE = settings.telegram_normalizer.api_call_before_pause   # 1 time
