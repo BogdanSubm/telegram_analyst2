@@ -3,9 +3,9 @@
         "api_id": __your_api__,
         "api_hash": "____________your_hash_______________",
         "bot_auth_token": "_______any_text__-__not_applicable_yet!_______",
-        "api_calls_per_minute": 60,
+        "api_calls_per_minute": 140,
         "api_idle_reset_time": 300
-        },
+    },
     "database_connection": {
         "host": "localhost",
         "port": 5432,
@@ -26,11 +26,23 @@
         }
     },
     "analyst": {
-        "analyzing_from": "2024-01-01 00:00:00.000",
+        "analyzing_from": "2025-01-01 00:00:00.000",
         "numb_channels_process" : 500,
         "size_text_fragment_for_save" : 128,
         "chunk_size_for_db_ops": 1000,
         "chunk_size_for_read_ops": 100,
         "media_group_post_ordering_base" : 1
+    },
+    "schedules": {
+        "channels": {
+            "hour":   23,
+            "minute": 50,
+            "second":  0
+        },
+        "posts": {
+            "hours": [0,  6, 12, 18],
+            "minutes": [5,  5,  5,  5],
+            "seconds": [0,  0,  0,  0]
+        }
     }
 }

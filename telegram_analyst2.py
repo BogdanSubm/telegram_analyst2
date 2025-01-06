@@ -11,11 +11,10 @@ logger.debug('Starting main module <telegram_analyst2>')
 import asyncio
 from pyrogram import Client
 from datetime import datetime
-from scheduler import AppScheduler
 
 from config_py import settings
 from app_status import app_status, running_status, AppStatusType
-
+from scheduler import main_schedule
 
 
 plugins = dict(root=settings.pyrogram.plugins.root,
@@ -58,18 +57,17 @@ async def main() :
     # scheduler.add_job(id='data_r_mess_new', func=data_r_mess_new, trigger='cron', hour=8, minute=0, second=0)
     # scheduler.start()
 
-
     # async with app :
     await app.start()
     await app.send_message('me', 'Telegram_analyst2 is running, to find out the commands, type: /help')
         # await idle()
+    main_schedule.start()
     while running_status.status :
-        # app_scheduler.start()
-        await asyncio.sleep(2)
+        await asyncio.sleep(1)
 
-    # app_scheduler.print_tasks()
-    # app_scheduler.stop()   #wait=False)
-    # app_scheduler.print_tasks()
+    # main_schedule.print_job()
+    main_schedule.shutdown()   #wait=False)
+    # main_schedule.print_job()
     await app.stop()
 
     logger.info('The application was stopped at the user\'s command.')

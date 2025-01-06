@@ -7,8 +7,12 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 import enum
 
-from database import recreate_tables, run_processing, list_channels_update, run_debug, channels
+from database import recreate_tables, run_processing, list_channels_update
 from app_status import app_status, running_status, AppStatusType
+from scheduler import main_schedule
+from processing import create_processing_schedule
+
+from channel import channels_update
 
 class BotCommand(enum.StrEnum) :
     INSTALL = '/install'
@@ -79,7 +83,9 @@ async def command_handler(client: Client, message: Message) :
                 case AppStatusType.FIRST_RUN :
 
                     await message.reply('First run processing, uploading data, please wait...')
-                    if await run_processing(client) :
+                    # if await run_processing(client) :
+                    if (await channels_update(client=client, is_first=True)
+                            and await create_processing_schedule(client=client)) :
                         app_status.status = AppStatusType.PROCESS_RUN
                         await message.reply('Processing has been started successful.')
                     else :
@@ -134,9 +140,19 @@ async def command_handler(client: Client, message: Message) :
             await message.reply('Processing has been stopped...')
 
         case BotCommand.DEBUG :
-
-            await run_debug(client)
-
+            logger.debug(await create_processing_schedule(client=client))
+            # main_schedule.add_job(
+            #     func=channels_update,
+            #     trigger='interval',
+            #     seconds=300,
+            #     kwargs=dict(client='client')
+            # )
+            # main_schedule.add_job(
+            #     func=channels_update,
+            #     kwargs={'client':client},
+            #     trigger='cron', hour=22, minute=15, second=30)
+            # # await run_debug(client)
+            main_schedule.print_jobs()
 
 
 # @Client.on_message(is_processing_filter & filters.chat(chats=channels.lst))

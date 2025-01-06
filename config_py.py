@@ -51,21 +51,25 @@ class AnalystSettings(BaseModel) :
     media_group_post_ordering_base: int = Field(default=1, ge=0, le=1, description='the base for numbering '
                                                                                    'posts in a media group')
 
-# class TelegramNormalizerSettings(BaseModel) :
-#     api_call_before_pause: PositiveInt = Field(default=10,
-#                                                description='the number of api function calls before the pause')
-#     api_call_pause_duration : float = Field(default=5.0, description='the duration of the pause in seconds')
-#     flood_idle_period : PositiveInt = Field(default=60, description='the duration of the period when api '
-#                                                                     'functions are not accessed to reset '
-#                                                                     'the normalizer counters')
+class ScheduleChannels(BaseModel) :
+    hour: int = Field(default=0, ge=0, le=23, description='hour of the start time for the channel update task')
+    minute: int = Field(default=0, ge=0, le=59, description='minutes of the start time for the channel update task')
+    second: int = Field(default=0, ge=0, le=59, description='seconds of the start time for the channel update task')
+class SchedulePosts(BaseModel) :
+    hours: list[int] = Field(description='hours of the start time for the posts update task')
+    minutes: list[int] = Field(description='minutes of the start time for the posts update task')
+    seconds: list[int] = Field(description='seconds of the start time for the posts update task')
+class ScheduleSettings(BaseModel) :
+    channels: ScheduleChannels = Field(description='task start time for channels')
+    posts: SchedulePosts = Field(description='task start time for channels')
 
 class AppSettings(BaseModel):
     telegram: TelegramSettings = Field(description='telegram settings')
     database_connection: DBConnectionSettings = Field(description='data base connection settings')
     logging: LogSettings = Field(description='logging settings')
     pyrogram: PyrogramSettings = Field(description='pyrogram settings')
-    analyst: AnalystSettings = Field(description='other app settings')
-    # telegram_normalizer: TelegramNormalizerSettings = Field(description='settings to prevent a ban for a flood in Telegram')
+    analyst: AnalystSettings = Field(description='main app settings')
+    schedules: ScheduleSettings = Field(description='schedules settings')
 
 
 _settings_json_string = pathlib.Path('config.json').read_text()

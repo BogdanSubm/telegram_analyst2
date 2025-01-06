@@ -1,7 +1,7 @@
 """
 main database module
 """
-import logging
+
 from asyncio import TaskGroup
 
 from logger import logger
@@ -637,7 +637,6 @@ async def run_processing(client: Client) :
     match app_status.status :
         case AppStatusType.FIRST_RUN :
             logger.info('First run, uploading all data has been started...')
-            # if not await upload_all(client=client, upload_time=get_full_day_time_stamp()) :
             if not await upload_all(client=client, upload_time=datetime.now()) :
                 logger.error('Error: updating of all database\'s tables has been unsuccessful...')
                 return False

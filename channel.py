@@ -1,6 +1,6 @@
 
 from logger import logger
-logger.debug('Loading <database> module')
+logger.debug('Loading <channel> module')
 
 import asyncio
 from datetime import datetime, timedelta
@@ -36,6 +36,10 @@ class DBChannelHist(Row) :       # record in <channel_hist> table
     update_time: datetime   # update time
     subscribers: int    # number of subscribers of the channel
     msgs_count: int     # number of messages of the channel
+
+
+def tick():
+    print(f"Tick! The time is: {datetime.now()}")
 
 
 async def get_db_channels_dict(db: Database) -> dict :
@@ -169,9 +173,7 @@ async def channels_update(client: Client, is_first: bool = False) -> bool :
         # reading all working channels from the database into the dictionary: <key> - id, <value> - title
         db_channels = await get_db_channels_dict(db=db)
 
-        # update_time = datetime.now()   # the time that will be recorded in the tables as the update time
         # reading all subscribed channels in Telegram
-
         #      FOR DEBUG
         # filtered_channels = (
         #     -1001720833502, -1001121902388, -1001684696497, -1001457597091, -1001373128436, -1001163756937,
@@ -180,7 +182,6 @@ async def channels_update(client: Client, is_first: bool = False) -> bool :
         #     -1002177572398, -1001408836166
         # )
         # tg_channels = await get_tg_channels_dict(client=client, selected_channels=filtered_channels)
-
         #   FOR PROD
         tg_channels = await get_tg_channels_dict(client=client)
 
