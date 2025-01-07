@@ -31,23 +31,20 @@ from app_types import media_types_encoder
 from chunk import Chunk, chunks
 from reaction import TGReactions, get_post_reactions
 
-# db: Database | None = None   # global Database object
-# normalizer = Normalizer()
 
-class ChannelList :
-    def __init__(self, init_list=['me']) :
-        self.__channel_list = init_list
-
-    @property
-    def lst(self) :
-        return self.__channel_list
-
-    @lst.setter
-    def lst(self, new_list: list) :
-        self.__channel_list = new_list
-
-
-channels = ChannelList()
+# class ChannelList :
+#     def __init__(self, init_list=['me']) :
+#         self.__channel_list = init_list
+#
+#     @property
+#     def lst(self) :
+#         return self.__channel_list
+#
+#     @lst.setter
+#     def lst(self, new_list: list) :
+#         self.__channel_list = new_list
+#
+# channels = ChannelList()
 
 
 # The data structures for save in database
@@ -296,6 +293,7 @@ async def recreate_tables() -> bool:
                                 text_len int4 NULL,
                                 text_entities_count int4 NULL,
                                 post_url varchar NULL,
+                                planned bool DEFAULT false NOT NULL,
                                 CONSTRAINT post_pk PRIMARY KEY (channel_id, post_id),
                                 CONSTRAINT post_unique UNIQUE (media_group_id),
                                 CONSTRAINT post_channel_fk FOREIGN KEY (channel_id) 
@@ -643,7 +641,7 @@ async def run_processing(client: Client) :
             logger.info('Uploading - ok!')
 
         case AppStatusType.PROCESS_RUN | AppStatusType.APP_STOPPED :
-            channels.lst = [-1002330451219]
+            # channels.lst = [-1002330451219]
                 # , -1001150636847,-1001999600137,-1001407735984,-1001387835436,-1001434942369,-1001247460025,-1001269328727,-1001119907458,-1002173481054,-1001140040257,-1001720833502,-1001786987818,-1001039255739,-1001684696497,-1001375960541,-1001684146975,-1001646511362,-1001852630630,-1002075081423,-1001863771680,-1001507734288,-1001164672298,-1001555979359,-1001654432419,-1001713271750,-1002061202990,-1001329188755,-1001648137205,-1002017388853,-1002160874756,-1001513592482,-1001178238337,-1001601022378,-1001756387595,-1001408836166,-1001638862576,-1001610037070,-1001580761898,-1001920826299,-1001373128436,-1001490689117,-1001618735800,-1001117681513,-1001573892445,-1002243195124,-1001542820616,-1001195518065,-1001937140822,-1001286050825,-1001788488602,-1001052741705,-1001439011975,-1001451120475,-1001081286887,-1001682401578,-1001160069287,-1001702796681,-1002100634882,-1001983260268,-1002125857137,-1001544737980,-1001576767771,-1001850344604,-1001903546969,-1001417960831,-1002146883464,-1001533350227,-1001752641311,-1001503786901,-1001212864285,-1001217403746,-1001638304350,-1001556054484,-1001414693404,-1001375051700,-1001217426310,-1001972927572,-1001860277066,-1001155412393,-1001223651429,-1001240501786,-1001336087232,-1001526752830,-1002329275862,-1002479064953,-1001265941657,-1001567847129,-1002312481032,-1001586330290,-1001354117866,-1001706328181,-1001625951959,-1002376985514,-1001633110548,-1001315746544,-1001314600216,-1001576490999,-1002038340948,-1001066811392,-1001181269908,-1001437741565,-1002188344885,-1002319527378,-1001621747845]
             pass
 
@@ -662,10 +660,18 @@ async def list_channels_update(client: Client) -> bool:
 
 
 from channel import channels_update
+from post import get_tg_channel_posts_dict, posts_update, get_db_channel_posts_list
 
 async def run_debug(client: Client) :
 
-    await channels_update(client, is_first=False)
+    # await channels_update(client, is_first=False)
+    # await get_tg_channel_posts_dict(client=client, chat_id=-1001720833502)
+    db: Database = Database(settings.database_connection)
+    if not db.is_connected :
+        return False
+    logger.debug(await get_db_channel_posts_list(db=db, chat_id= -1001720833502))
+    db.close_connection()
+    # await posts_update(client)
 
     # chat_id = -1001720833502
     # msg_id = [4412, 4413, 4414, 4415, 4416, 4417, 4418, 4419, 4420]

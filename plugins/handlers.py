@@ -7,7 +7,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 import enum
 
-from database import recreate_tables, run_processing, list_channels_update
+from database import recreate_tables, run_processing, list_channels_update, run_debug
 from app_status import app_status, running_status, AppStatusType
 from scheduler import main_schedule
 from processing import create_processing_schedule
@@ -140,7 +140,7 @@ async def command_handler(client: Client, message: Message) :
             await message.reply('Processing has been stopped...')
 
         case BotCommand.DEBUG :
-            logger.debug(await create_processing_schedule(client=client))
+            # logger.debug(await create_processing_schedule(client=client))
             # main_schedule.add_job(
             #     func=channels_update,
             #     trigger='interval',
@@ -151,8 +151,8 @@ async def command_handler(client: Client, message: Message) :
             #     func=channels_update,
             #     kwargs={'client':client},
             #     trigger='cron', hour=22, minute=15, second=30)
-            # # await run_debug(client)
-            main_schedule.print_jobs()
+            await run_debug(client)
+            # main_schedule.print_jobs()
 
 
 # @Client.on_message(is_processing_filter & filters.chat(chats=channels.lst))

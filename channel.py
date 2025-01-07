@@ -1,3 +1,4 @@
+# Channel module
 
 from logger import logger
 logger.debug('Loading <channel> module')
@@ -8,34 +9,12 @@ from pyrogram import Client
 from pyrogram.types import Message, Chat, Username
 from pyrogram.enums import MessageMediaType, ParseMode, ChatType
 
-
-from pgdb import Database, Row, Rows
+from pgdb import Database
 from config_py import settings
 from normalizer import normalizer
-from app_types import media_types_encoder
-from chunk import Chunk, chunks
-from reaction import TGReactions, get_post_reactions
 from exceptions import AppDBError
 
-
-# The data structures for save in database
-class DBChannel(Row) :       # record in <channel> table
-    id: int     # channel id    - primary key
-
-    username: str   # name for telegram channel login
-    title: str  # title of the channel
-    category: str   # 'Аналитика' - channel category
-    creation_time: datetime     # channel creation time
-    turn_on_time: datetime     # channel time of start analysis
-    turn_off_time: datetime | None    # channel time of ending analysis
-
-
-class DBChannelHist(Row) :       # record in <channel_hist> table
-    channel_id: int     # channel id    - foreign key
-
-    update_time: datetime   # update time
-    subscribers: int    # number of subscribers of the channel
-    msgs_count: int     # number of messages of the channel
+from app_types import DBChannel, DBChannelHist
 
 
 def tick():
