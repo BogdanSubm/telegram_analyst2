@@ -52,3 +52,46 @@ class DBChannelHist(Row) :       # record in <channel_hist> table
     update_time: datetime   # update time
     subscribers: int    # number of subscribers of the channel
     msgs_count: int     # number of messages of the channel
+
+
+class DBPost(Row) :       # record in <post> table
+    channel_id: int     # channel id  - part of the group primary key
+    post_id: int     # post id      - part of the group primary key
+
+    forward_from_chat : int | None    # channel id from where the post was forwarded (if any)
+    creation_time: datetime     # post creation time
+    drop_time: datetime | None    # time to delete a post
+    is_advertising: bool    # the sign of an advertising post
+    media_group_id: int      # media group id if the post is a group post
+    media_type : str   # type of content
+    post_text: str | None     # content of a text or a caption field if any
+    text_len: int | None    # the length of the text content string
+    text_entities_count: int | None     # the number of formatting entities in the text or caption field
+    post_url: str |None     # the url-link to the post (for example, https://t.me/simulative_official/2109)
+    is_planned: bool    # a sign that planning has been completed
+
+
+class DBPostHist(Row) :       # record in <post_hist> table
+    channel_id: int     # channel id  - part of the group foreign key
+    post_id: int     # post id      - part of the group foreign key
+
+    update_time: datetime   # update time
+    post_comments: int     # number of comments
+    post_views: int     # number of views
+    stars: int     # number of <stars> reactions
+    positives: int  # number of positive emoji
+    negatives: int  # number of negative emoji
+    neutrals: int   # number of neutrals emoji
+    customs: int  # number of custom emoji
+    reposts: int  # the number of reposts of this post
+
+
+class DBMediaGroup(Row) :       # record in <post_hist> table
+    media_group_id: int      # media group id if the post is a group post  - primary key
+
+    update_time: datetime   # update time
+    post_id: int     # post id
+    post_order: int     # serial number of the post in the media group
+    post_views: int     # number of views
+    reposts: int    # the number of reposts of this post
+

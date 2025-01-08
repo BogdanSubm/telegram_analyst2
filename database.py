@@ -293,7 +293,7 @@ async def recreate_tables() -> bool:
                                 text_len int4 NULL,
                                 text_entities_count int4 NULL,
                                 post_url varchar NULL,
-                                planned bool DEFAULT false NOT NULL,
+                                is_planned bool DEFAULT false NOT NULL,
                                 CONSTRAINT post_pk PRIMARY KEY (channel_id, post_id),
                                 CONSTRAINT post_unique UNIQUE (media_group_id),
                                 CONSTRAINT post_channel_fk FOREIGN KEY (channel_id) 
@@ -339,9 +339,9 @@ async def recreate_tables() -> bool:
                                 channel_id int8 NOT NULL,
                                 post_id int4 NOT NULL,
                                 observation_day int4 NOT NULL,
-                                planned_time timestamp NOT NULL,
-                                actual_time timestamp NULL,
-                                is_completed bool DEFAULT false NOT NULL,
+                                planned_at timestamp NOT NULL,
+                                started_at timestamp NULL,
+                                completed_at timestamp NULL,
                                 CONSTRAINT task_fk FOREIGN KEY (channel_id, post_id)
                                     REFERENCES public.post(channel_id, post_id) ON UPDATE CASCADE
                                 ''',
@@ -669,7 +669,17 @@ async def run_debug(client: Client) :
     db: Database = Database(settings.database_connection)
     if not db.is_connected :
         return False
-    logger.debug(await get_db_channel_posts_list(db=db, chat_id= -1001720833502))
+    # logger.debug(await get_db_channel_posts_list(db=db, chat_id= -1001720833502))
+
+    res = db.read_rows(
+        table_name='post',
+        columns_statement='creation_time',
+        condition_statement=f'channel_id = -1001720833502 '
+                            f'and post_id = 6 '
+                            f'and drop_time isnull')
+    logger.debug(f'res:{res}')
+    logger.debug(f'res.value:{res.value}')
+    logger.debug(f'len(res.value):{len(res.value)}')
     db.close_connection()
     # await posts_update(client)
 

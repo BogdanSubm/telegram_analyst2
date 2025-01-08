@@ -34,15 +34,17 @@
         "media_group_post_ordering_base" : 1
     },
     "schedules": {
-        "channels": {
+        "update_channels": {
             "hour":   23,
             "minute": 50,
             "second":  0
         },
-        "posts": {
+        "update_posts": {
             "hours": [0,  6, 12, 18],
             "minutes": [5,  5,  5,  5],
             "seconds": [0,  0,  0,  0]
-        }
+        },
+        "post_observation_days": [1, 2, 3, 5, 10],
+        "task_duration_threshold": 180
     }
 }

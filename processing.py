@@ -20,29 +20,29 @@ async def create_channel_schedule(client: Client) :
         func=channels_update,
         kwargs={'client': client},
         trigger='cron',
-        hour=settings.schedules.channels.hour,
-        minute=settings.schedules.channels.minute,
-        second=settings.schedules.channels.second
+        hour=settings.schedules.update_channels.hour,
+        minute=settings.schedules.update_channels.minute,
+        second=settings.schedules.update_channels.second
     )
     return True
 
 
 async def create_post_schedule(client: Client) :
-    hours: list = settings.schedules.posts.hours
-    minutes: list = settings.schedules.posts.minutes
-    seconds: list = settings.schedules.posts.seconds
+    hours: list = settings.schedules.update_posts.hours
+    minutes: list = settings.schedules.update_posts.minutes
+    seconds: list = settings.schedules.update_posts.seconds
     if not(len(hours) == len(minutes) == len(seconds)) :
         logger.error('Bad schedules time param.')
         return False
 
-    for t, h in enumerate(hours) :
+    for i, h in enumerate(hours) :
         main_schedule.add_job(
             func=tick1,     #   FOR DEBUG
-            kwargs={'number' : t},
+            kwargs={'number' : i},
             trigger='cron',
             hour=h,
-            minute=minutes[t],
-            second=seconds[t]
+            minute=minutes[i],
+            second=seconds[i]
         )
 
     return True

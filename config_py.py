@@ -51,17 +51,20 @@ class AnalystSettings(BaseModel) :
     media_group_post_ordering_base: int = Field(default=1, ge=0, le=1, description='the base for numbering '
                                                                                    'posts in a media group')
 
-class ScheduleChannels(BaseModel) :
+class ScheduleUpdateChannels(BaseModel) :
     hour: int = Field(default=0, ge=0, le=23, description='hour of the start time for the channel update task')
     minute: int = Field(default=0, ge=0, le=59, description='minutes of the start time for the channel update task')
     second: int = Field(default=0, ge=0, le=59, description='seconds of the start time for the channel update task')
-class SchedulePosts(BaseModel) :
+class ScheduleUpdatePosts(BaseModel) :
     hours: list[int] = Field(description='hours of the start time for the posts update task')
     minutes: list[int] = Field(description='minutes of the start time for the posts update task')
     seconds: list[int] = Field(description='seconds of the start time for the posts update task')
 class ScheduleSettings(BaseModel) :
-    channels: ScheduleChannels = Field(description='task start time for channels')
-    posts: SchedulePosts = Field(description='task start time for channels')
+    update_channels: ScheduleUpdateChannels = Field(description='task start time for channels')
+    update_posts: ScheduleUpdatePosts = Field(description='task start time for channels')
+    post_observation_days: list[PositiveInt] = Field(description='list of all observation day numbers')
+    task_duration_threshold: PositiveInt = Field(default=60, description='the maximum time allowed for the task of '
+                                                                         'updating the post')
 
 class AppSettings(BaseModel):
     telegram: TelegramSettings = Field(description='telegram settings')
