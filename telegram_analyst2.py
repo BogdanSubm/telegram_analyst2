@@ -66,7 +66,7 @@ async def main() :
         await asyncio.sleep(1)
 
     # main_schedule.print_job()
-    main_schedule.shutdown()   #wait=False)
+    main_schedule.stop()   #wait=False)
     # main_schedule.print_job()
     await app.stop()
 

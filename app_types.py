@@ -76,6 +76,7 @@ class DBPostHist(Row) :       # record in <post_hist> table
     post_id: int     # post id      - part of the group foreign key
 
     update_time: datetime   # update time
+    observation_day: int    # serial number of the observation day
     post_comments: int     # number of comments
     post_views: int     # number of views
     stars: int     # number of <stars> reactions
@@ -91,7 +92,17 @@ class DBMediaGroup(Row) :       # record in <post_hist> table
 
     update_time: datetime   # update time
     post_id: int     # post id
+    observation_day: int    # serial number of the observation day
     post_order: int     # serial number of the post in the media group
     post_views: int     # number of views
     reposts: int    # the number of reposts of this post
 
+
+class DBTaskPlan(Row) :       # record in <task_plan> table
+    channel_id: int     # channel id  - part of the group foreign key
+    post_id: int     # post id      - part of the group foreign key
+
+    observation_day: int    # the ordinal number of the day on which the observation will be performed
+    planned_at: datetime   # scheduled task start time
+    # started_at: datetime | None  # the time when the task was actually started
+    completed_at: datetime | None  # the time of the actual completion of the task

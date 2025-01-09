@@ -9,6 +9,7 @@ logger.debug('Loading <database> module')
 
 import asyncio
 from datetime import datetime, timedelta
+import pyrogram
 from pyrogram import Client
 from pyrogram.types import Message, Chat, Username
 from pyrogram.enums import MessageMediaType, ParseMode, ChatType
@@ -104,8 +105,6 @@ class DBMediaGroup(Row) :       # record in <post_hist> table
     post_order: int     # serial number of the post in the media group
     post_views: int     # number of views
     reposts: int    # the number of reposts of this post
-
-
 
 
 start_analytics_time = settings.analyst.analyzing_from
@@ -340,11 +339,11 @@ async def recreate_tables() -> bool:
                                 post_id int4 NOT NULL,
                                 observation_day int4 NOT NULL,
                                 planned_at timestamp NOT NULL,
-                                started_at timestamp NULL,
                                 completed_at timestamp NULL,
                                 CONSTRAINT task_fk FOREIGN KEY (channel_id, post_id)
                                     REFERENCES public.post(channel_id, post_id) ON UPDATE CASCADE
                                 ''',
+                                                            # started_at timestamp NULL,
                            overwrite=True) : return False
 
     return True
@@ -662,6 +661,7 @@ async def list_channels_update(client: Client) -> bool:
 from channel import channels_update
 from post import get_tg_channel_posts_dict, posts_update, get_db_channel_posts_list
 
+
 async def run_debug(client: Client) :
 
     # await channels_update(client, is_first=False)
@@ -675,12 +675,14 @@ async def run_debug(client: Client) :
         table_name='post',
         columns_statement='creation_time',
         condition_statement=f'channel_id = -1001720833502 '
-                            f'and post_id = 6 '
-                            f'and drop_time isnull')
+                            f'and post_id = 5 '
+                            f'and drop_time notnull')
     logger.debug(f'res:{res}')
     logger.debug(f'res.value:{res.value}')
-    logger.debug(f'len(res.value):{len(res.value)}')
-    db.close_connection()
+    logger.debug(f'len(res.value):{len(res.value)==1}')
+
+
+
     # await posts_update(client)
 
     # chat_id = -1001720833502

@@ -37,14 +37,14 @@ class DBQueryResult :
     value: tuple | int | None    # received data
 
 
-# a class for working with the database connection (we use singleton pattern)
 class Database :
-    __db_instance = None
-
-    def __new__(cls, *args, **kwargs) :
-        if not cls.__db_instance :
-            cls.__db_instance = super().__new__(cls)
-        return cls.__db_instance
+    #    # a class for working with the database connection (we use singleton pattern)
+    # __db_instance = None
+    #
+    # def __new__(cls, *args, **kwargs) :
+    #     if not cls.__db_instance :
+    #         cls.__db_instance = super().__new__(cls)
+    #     return cls.__db_instance
 
     def __init__(self, db_connect_set: DBConnectionSettings)  -> object:
         ''' Constructor '''
@@ -59,6 +59,9 @@ class Database :
         except Exception as e :
             logger.error(f'An error occurred while connecting database: {e}')
             self.is_connected = False
+
+    def __del__(self):
+        self.close_connection()
 
 
     def run_query(self, query: str, params: tuple = (), several: bool = False) -> DBQueryResult :

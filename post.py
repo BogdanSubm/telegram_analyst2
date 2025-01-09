@@ -1,5 +1,7 @@
 
 from logger import logger
+from scheduler import main_schedule
+
 logger.debug('Loading <post> module')
 
 import asyncio
@@ -18,7 +20,9 @@ from reaction import TGReactions, get_post_reactions
 from channel import get_db_channels_dict
 from exceptions import AppDBError
 
-from app_types import DBPost, DBMediaGroup
+from task import set_post_drop_time
+
+from app_types import DBPost, DBMediaGroup, DBTaskPlan
 
 
 async def get_db_channel_posts_list(db:Database, chat_id: int) -> dict[int, bool] :
@@ -81,24 +85,10 @@ async def get_tg_channel_posts_dict(client: Client, chat_id:int) -> dict[int, Me
     return posts
 
 
-async def drop_posts(db:Database, dropping_posts: list, db_posts: dict[int, bool], chat_id: Chat) :
-    # dropping selected posts
-    for pst in dropping_posts :
-        res = db.update_data(
-            table_name='post',
-            set_statement=f'drop_time=\'{datetime.now()}\'',
-            condition_statement=f'channel_id={chat_id} and post_id={pst}'
-        )
-        if res.is_successful :
-            if db_posts[pst] :
-                # planned post
-                # TODO: Выключить все задачи запланированные по посту
-                ...
-
-            logger.info(f'  the post id [{pst}] was dropped.')
-        else :
-            logger.info(f'  couldn\'t dropped post id [{pst}].')
-
+# async def drop_posts(db:Database, dropping_posts: list, chat_id: int) :
+#     # dropping selected posts
+#     for pst in dropping_posts :
+#         await set_post_drop_time(db=db, chat_id=chat_id, post_id=pst)
 
 
 async def add_post_to_database(db: Database, client: Client, msg: Message) -> bool :
@@ -111,17 +101,6 @@ async def add_post_to_database(db: Database, client: Client, msg: Message) -> bo
     else :
         is_advertising = False
 
-    # checking the media group
-    media_frames: list[Message] = []
-    media_id = None
-    if msg.media_group_id :
-        try:
-            media_frames = await normalizer.run(client.get_media_group, msg.chat.id, msg.id)
-            if len(media_frames) > 0 :
-                media_id = msg.media_group_id
-        except ValueError :
-            logger.info(f'incorrect media group post: id [{msg.id}]')
-
     post_record = DBPost(
         channel_id=msg.chat.id,
         post_id=msg.id,
@@ -129,7 +108,7 @@ async def add_post_to_database(db: Database, client: Client, msg: Message) -> bo
         creation_time=msg.date,
         drop_time=None,
         is_advertising=is_advertising,
-        media_group_id=media_id,
+        media_group_id=msg.media_group_id,
         media_type=(media_types_encoder.get(msg.media, None) if msg.media else None),
         post_text=text[:settings.analyst.size_text_fragment_for_save],
         text_len=len(text),
@@ -140,38 +119,14 @@ async def add_post_to_database(db: Database, client: Client, msg: Message) -> bo
     )
     res = db.insert_rows(table_name='post', values=(post_record,))
     if not res.is_successful :
-        logger.info(f'couldn\'t add post: id [{post_record.post_id}] in <post> tabl, we leave it without planning. ')
+        logger.info(f'couldn\'t add post: id [{post_record.post_id}] in <post> table, we leave it without planning. ')
         return False
-
-
-        # if media_id :
-        #     # if this is a correct media group, add all the frames of the post
-        #     # TODO: check below code
-        #     media_frames.sort(key=lambda f: f.id)
-        #
-        #     media_records: list[Message] = []
-        #     for i, fr in enumerate(media_frames, start=settings.analyst.media_group_post_ordering_base) :
-        #         media_records.append(
-        #             DBMediaGroup(
-        #                 media_group_id=media_id,
-        #                 update_time=upload_time,
-        #                 post_id=msg.id,
-        #                 post_order=post_order,
-        #                 post_views=msg.views,
-        #                 reposts=msg.forwards
-        #             )
-        #         )
-        #
-        #     logger.debug(f'Size of the list of media group <posts>: {len(posts)}')
-        #     res = []
-        #     async for chk in chunks(lst=posts, chunk_size=settings.analyst.chunk_size_for_db_ops) :
-        #         res.append(db.insert_rows(table_name='media_group', values=tuple(chk)).is_successful)
 
     logger.info(f'post: id [{post_record.post_id}] was added in <post> table, we will plan.')
     return True
 
 
-async def add_post_tasks_in_schedule(db:Database, chat_id: int, post_id: int) -> bool :
+async def add_post_tasks_in_schedule(db:Database, chat_id: int, post_id: int, uploading_tasks: bool) -> bool :
     res = db.read_rows(
         table_name='post',
         columns_statement='creation_time',
@@ -186,15 +141,43 @@ async def add_post_tasks_in_schedule(db:Database, chat_id: int, post_id: int) ->
     current_time = datetime.now()
 
     # creating tasks for a schedule
+    task_records: list[DBTaskPlan] = []
     for day in settings.schedules.post_observation_days :
-        if ((base_time + timedelta(days = day) >= current_time)
+        if ((base_time + timedelta(days=day) >= current_time)
                 or (day == settings.schedules.post_observation_days[-1])):
-            # adding a task to the schedule if the scheduled time is less than or equal to the current time
+            # adding a task to the schedule if the scheduled time is greater than or equal to the current time
             # or it is the last day of all observation days.
-            ...
+            task_records.append(
+                DBTaskPlan(
+                    channel_id=chat_id,
+                    post_id=post_id,
+                    observation_day=day,
+                    # task_in_pipline=False,
+                    planned_at=base_time + timedelta(days=day),
+                    # started_at=None,
+                    completed_at=None
+                    ),
+            )
 
+    res = db.insert_rows(table_name='task_plan', values=tuple(task_records))
+    if not res.is_successful :
+        logger.info(f'sorry, we couldn\'t scheduled task for post: id [{post_id}] in <task_plan> table. ')
+        return False
+
+    if uploading_tasks :
+        main_schedule.upload_tasks_in_pipline(tasks=task_records)
+
+    logger.info(f'the task for post: id [{post_id}] has been successfully scheduled in the <task_plan> table.')
     return True
 
+
+async def turn_on_is_planned_flag(db:Database, chat_id: int, post_id: int) -> bool :
+    res = db.update_data(
+        table_name='post',
+        set_statement=f'is_planned=TRUE',
+        condition_statement=f'channel_id={chat_id} and post_id={post_id}'
+    )
+    return res.is_successful
 
 
 async def updating_posts_and_schedule(
@@ -203,7 +186,8 @@ async def updating_posts_and_schedule(
         update_posts: list[int],
         db_unplanned_posts: list[int],
         tg_posts: dict[int, Message],
-        chat_id: int
+        chat_id: int,
+        uploading_tasks: bool
 ) :
     for pst in update_posts :
         need_planning = True
@@ -216,14 +200,13 @@ async def updating_posts_and_schedule(
             ...
         # putting observation tasks for post into the schedule
         if need_planning :
-            if await add_post_tasks_in_schedule(db=db, chat_id=chat_id, post_id=pst) :
-                # updating <is_planned> flag for the post
-                ...
+            if await add_post_tasks_in_schedule(db=db, chat_id=chat_id, post_id=pst, uploading_tasks=uploading_tasks) :
+                # updating the <is_planned> flag for the post, in case the scheduling was completed successfully
+                await turn_on_is_planned_flag(db=db, chat_id=chat_id, post_id=pst)
+    return
 
 
-
-
-async def posts_update(client: Client) -> bool :
+async def posts_update(client: Client, is_first: bool = False) -> bool :
     # open database connection
     db: Database = Database(settings.database_connection)
     if not db.is_connected :
@@ -251,8 +234,8 @@ async def posts_update(client: Client) -> bool :
                 dropping_posts = list(set(db_posts.keys()) - set(tg_posts.keys()))
                 logger.info(f'total posts to dropping: {len(dropping_posts)} from channel id [{ch}] title [{title}]')
                 # dropping selected posts and canceling scheduled tasks
-                await drop_posts(db=db, dropping_posts=dropping_posts, db_posts=db_posts, chat_id=ch)
-
+                for pst in dropping_posts :
+                    await set_post_drop_time(db=db, chat_id=ch, post_id=pst)
                 # creating a list of post to add or update and add scheduled tasks to the schedule database
                 update_posts = list(set(tg_posts.keys()) - set(db_planned_posts))
                 logger.info(f'channel id[{ch}] title[{title}] - number of posts for add '
@@ -264,16 +247,14 @@ async def posts_update(client: Client) -> bool :
                     update_posts=update_posts,
                     db_unplanned_posts=db_unplanned_posts,
                     tg_posts=tg_posts,
-                    chat_id=ch
+                    chat_id=ch,
+                    uploading_tasks=not is_first
                 )
 
         # await tasks_update(db=db, client=client)
 
-
     except AppDBError as e:
         logger.error(f'Error: {e}')
         return False
-
-    db.close_connection()
 
     return True

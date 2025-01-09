@@ -198,6 +198,4 @@ async def channels_update(client: Client, is_first: bool = False) -> bool :
         logger.error(f'Error: {e}')
         return False
 
-    db.close_connection()
-
     return True
