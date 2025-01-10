@@ -2,17 +2,16 @@
 from logger import logger
 logger.debug('Loading <processing> module')
 
-from datetime import datetime
 from pyrogram import Client
 
 from pgdb import Database
-from scheduler import main_schedule
-from channel import channels_update
-from post import posts_update
 from config_py import settings
 from app_types import DBTaskPlan
 
-from task import post_day_observation, get_tasks_to_upload
+from channel import channels_update
+from task import get_tasks_to_upload
+from post import posts_update, upload_tasks_in_pipeline
+from scheduler import main_schedule
 
 TaskType = DBTaskPlan
 
@@ -50,22 +49,6 @@ async def create_update_post_schedule(client: Client) :
     return True
 
 
-async def upload_tasks_in_pipeline(client: Client, tasks: list[TaskType]) -> bool :
-    try :
-        for task in tasks:
-            main_schedule.add_job(
-                func=post_day_observation,
-                kwargs={'client': client, 'task': task},
-                trigger='cron',
-                start_date = task.planned_at
-            )
-    except Exception as e:
-        logger.error(f'Error: {e}')
-        return False
-
-    return True
-
-
 async def create_task_schedule(client: Client) :
     # open database connection
     db: Database = Database(settings.database_connection)
@@ -75,8 +58,7 @@ async def create_task_schedule(client: Client) :
     # reading all post tasks that have not been completed yet
     tasks_to_upload: list[TaskType] = await get_tasks_to_upload(db=db)
 
-    return upload_tasks_in_pipeline(client=client, tasks=tasks_to_upload)
-
+    return await upload_tasks_in_pipeline(client=client, tasks=tasks_to_upload)
 
 
 async def create_processing_schedule(client: Client) -> bool :

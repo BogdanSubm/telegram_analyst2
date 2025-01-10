@@ -3,14 +3,13 @@ main module
 """
 import logging
 from logger import get_logger, logger
-logger = get_logger(logging.DEBUG, to_file=False)
+logger: logger = get_logger(logging.DEBUG, to_file=False)
 logger.debug('Loading <logger> module')
 logger.debug('Starting main module <telegram_analyst2>')
 
 
 import asyncio
 from pyrogram import Client
-from datetime import datetime
 
 from config_py import settings
 from app_status import app_status, running_status, AppStatusType
@@ -21,17 +20,20 @@ plugins = dict(root=settings.pyrogram.plugins.root,
                include=settings.pyrogram.plugins.include,
                exclude=settings.pyrogram.plugins.exclude)
 
+# plugins = dict(root="plugins")
+
 app = Client(name='test_pyrogram',
              api_id=settings.telegram.api_id,
              api_hash=settings.telegram.api_hash,
              plugins=plugins)
 
 
-my_group = 'My_test_group20242003'
-my_group_id = -1002330451219
-simulative_chl = 'simulative_official'  # an outside channel
-simulative_chl_id = -1001373128436
-simulative_cht = 'itresume_chat'       # an outside supergroup
+
+# my_group = 'My_test_group20242003'
+# my_group_id = -1002330451219
+# simulative_chl = 'simulative_official'  # an outside channel
+# simulative_chl_id = -1001373128436
+# simulative_cht = 'itresume_chat'       # an outside supergroup
 
 # async def outbox_message(client: Client, message: Message):
 #     await message.edit_text(text=f'--{message.text}--', parse_mode=ParseMode.MARKDOWN)
@@ -53,9 +55,6 @@ simulative_cht = 'itresume_chat'       # an outside supergroup
 
 
 async def main() :
-
-    # scheduler.add_job(id='data_r_mess_new', func=data_r_mess_new, trigger='cron', hour=8, minute=0, second=0)
-    # scheduler.start()
 
     # async with app :
     await app.start()

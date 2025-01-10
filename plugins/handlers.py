@@ -7,14 +7,13 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 import enum
 
-from database import recreate_tables, run_processing, list_channels_update, run_debug
+from database import recreate_tables, run_debug
 from app_status import app_status, running_status, AppStatusType
-from scheduler import main_schedule
-from processing import create_processing_schedule
 
 from channel import channels_update
 from post import posts_update
 from task import tasks_update
+from processing import create_processing_schedule
 
 
 class BotCommand(enum.StrEnum) :

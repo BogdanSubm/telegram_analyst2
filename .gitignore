@@ -3,4 +3,6 @@
 trash
 .app_status
 config.json
+config_cloud.json
+config_local.json
 *.session

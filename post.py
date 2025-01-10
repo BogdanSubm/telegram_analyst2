@@ -6,22 +6,20 @@ import asyncio
 from datetime import datetime, timedelta
 from pyrogram import Client
 from pyrogram.types import Message, Chat, Username
-from pyrogram.enums import MessageMediaType, ParseMode, ChatType
-
+# from pyrogram.enums import MessageMediaType, ParseMode, ChatType
 
 from pgdb import Database, Row, Rows
 from config_py import settings
 from normalizer import normalizer
-from app_types import media_types_encoder
+from app_types import media_types_encoder, DBPost, DBTaskPlan
 from chunk import Chunk, chunks
-from reaction import TGReactions, get_post_reactions
-from channel import get_db_channels_dict
 from exceptions import AppDBError
 
-from task import set_post_drop_time
-from processing import upload_tasks_in_pipeline
+from channel import get_db_channels_dict
+from task import set_post_drop_time, post_day_observation
+from scheduler import main_schedule
 
-from app_types import DBPost, DBMediaGroup, DBTaskPlan
+TaskType = DBTaskPlan
 
 
 async def get_db_channel_posts_list(db:Database, chat_id: int) -> dict[int, bool] :
@@ -29,7 +27,7 @@ async def get_db_channel_posts_list(db:Database, chat_id: int) -> dict[int, bool
     start_time = settings.analyst.analyzing_from
     res = db.read_rows(
         table_name='post',
-        columns_statement='post_id, planned',
+        columns_statement='post_id, is_planned',
         condition_statement=f'True '
                             f'and creation_time >= \'{start_time}\' '
                             f'and channel_id = {chat_id} '
@@ -85,12 +83,6 @@ async def get_tg_channel_posts_dict(client: Client, chat_id:int) -> dict[int, Me
     return posts
 
 
-# async def drop_posts(db:Database, dropping_posts: list, chat_id: int) :
-#     # dropping selected posts
-#     for pst in dropping_posts :
-#         await set_post_drop_time(db=db, chat_id=chat_id, post_id=pst)
-
-
 async def add_post_to_database(db: Database, client: Client, msg: Message) -> bool :
 
     # identifying advertising posts
@@ -128,6 +120,27 @@ async def add_post_to_database(db: Database, client: Client, msg: Message) -> bo
     return True
 
 
+async def upload_tasks_in_pipeline(client: Client, tasks: list[TaskType]) -> bool :
+    try :
+        for task in tasks:
+            main_schedule.add_job(
+                func=post_day_observation,
+                kwargs={'db': None, 'client': client, 'task': task},
+                trigger='cron',
+                year=task.planned_at.year,
+                month=task.planned_at.month,
+                day=task.planned_at.day,
+                hour=task.planned_at.hour,
+                minute=task.planned_at.minute,
+                second=task.planned_at.second
+            )
+    except Exception as e:
+        logger.error(f'Error: {e}')
+        return False
+
+    return True
+
+
 async def add_post_tasks_in_schedule(db:Database, client:Client, chat_id: int, post_id: int, uploading_tasks: bool) -> bool :
     res = db.read_rows(
         table_name='post',
@@ -140,7 +153,7 @@ async def add_post_tasks_in_schedule(db:Database, client:Client, chat_id: int, p
     if not res.is_successful or len(res.value) == 0:
         return False
 
-    base_time = res.value[0]    # the post creation time
+    base_time = res.value[0][0]    # the post creation time
     current_time = datetime.now()
 
     # creating tasks for a schedule
