@@ -1,7 +1,5 @@
 
 from logger import logger
-from scheduler import main_schedule
-
 logger.debug('Loading <post> module')
 
 import asyncio
@@ -21,6 +19,7 @@ from channel import get_db_channels_dict
 from exceptions import AppDBError
 
 from task import set_post_drop_time
+from processing import upload_tasks_in_pipeline
 
 from app_types import DBPost, DBMediaGroup, DBTaskPlan
 
@@ -31,12 +30,13 @@ async def get_db_channel_posts_list(db:Database, chat_id: int) -> dict[int, bool
     res = db.read_rows(
         table_name='post',
         columns_statement='post_id, planned',
-        condition_statement=f'creation_time >= \'{start_time}\' '
+        condition_statement=f'True '
+                            f'and creation_time >= \'{start_time}\' '
                             f'and channel_id = {chat_id} '
-                            f'and drop_time isnull'
+                            f'and drop_time isnull '
     )
     if not res.is_successful :
-        raise AppDBError(f'Database operation error: couldn\'t read list of posts of the channel - id[{chat_id}].')
+        raise AppDBError(f'Database operation error: couldn\'t read list of posts of the channel channel_id[{chat_id}].')
 
     return {_[0]:_[1] for _ in res.value}  # creating a dictionary for a post and its <planned> attribute
 
@@ -44,7 +44,7 @@ async def get_db_channel_posts_list(db:Database, chat_id: int) -> dict[int, bool
 async def get_tg_channel_posts_dict(client: Client, chat_id:int) -> dict[int, Message] :
     # reading all posts of this channel from Telegram starting from the date - <analyzing_from>
     start_time = settings.analyst.analyzing_from
-    logger.debug(f'Start reading messages of the channel - id[{chat_id}]:')
+    logger.debug(f'start reading messages of the channel channel_id[{chat_id}]:')
     messages: list[Message] = []
     chunk = Chunk(normalizer)
     rd = 0
@@ -119,20 +119,23 @@ async def add_post_to_database(db: Database, client: Client, msg: Message) -> bo
     )
     res = db.insert_rows(table_name='post', values=(post_record,))
     if not res.is_successful :
-        logger.info(f'couldn\'t add post: id [{post_record.post_id}] in <post> table, we leave it without planning. ')
+        logger.info(f'Couldn\'t add post post_id[{post_record.post_id}] channel_id[{post_record.channel_id}] '
+                    f'in <post> table, we leave it without planning.')
         return False
 
-    logger.info(f'post: id [{post_record.post_id}] was added in <post> table, we will plan.')
+    logger.info(f'Post post_id[{post_record.post_id}] channel_id[{post_record.channel_id}] '
+                f'was added in <post> table, we will plan.')
     return True
 
 
-async def add_post_tasks_in_schedule(db:Database, chat_id: int, post_id: int, uploading_tasks: bool) -> bool :
+async def add_post_tasks_in_schedule(db:Database, client:Client, chat_id: int, post_id: int, uploading_tasks: bool) -> bool :
     res = db.read_rows(
         table_name='post',
         columns_statement='creation_time',
-        condition_statement=f'channel_id = {chat_id} '
+        condition_statement=f'True '
+                            f'and channel_id = {chat_id} '
                             f'and post_id = {post_id} '
-                            f'and drop_time isnull'
+                            f'and drop_time isnull '
     )
     if not res.is_successful or len(res.value) == 0:
         return False
@@ -161,13 +164,18 @@ async def add_post_tasks_in_schedule(db:Database, chat_id: int, post_id: int, up
 
     res = db.insert_rows(table_name='task_plan', values=tuple(task_records))
     if not res.is_successful :
-        logger.info(f'sorry, we couldn\'t scheduled task for post: id [{post_id}] in <task_plan> table. ')
+        logger.info(f'Couldn\'t scheduled task for post post_id[{post_id}] channel_id[{chat_id}] in <task_plan> table.')
         return False
 
-    if uploading_tasks :
-        main_schedule.upload_tasks_in_pipline(tasks=task_records)
+    logger.info(f'The task for post post_id[{post_id}] channel_id[{chat_id}] has been successfully scheduled '
+                f'in the <task_plan> table.')
 
-    logger.info(f'the task for post: id [{post_id}] has been successfully scheduled in the <task_plan> table.')
+    if uploading_tasks :
+        if await upload_tasks_in_pipeline(client=client, tasks=task_records) :
+            logger.info(f'The post tasks has also been uploaded to the running scheduler.')
+        else :
+            logger.error(f'The post tasks could not be uploaded to the running scheduler.')
+
     return True
 
 
@@ -175,7 +183,9 @@ async def turn_on_is_planned_flag(db:Database, chat_id: int, post_id: int) -> bo
     res = db.update_data(
         table_name='post',
         set_statement=f'is_planned=TRUE',
-        condition_statement=f'channel_id={chat_id} and post_id={post_id}'
+        condition_statement=f'True '
+                            f'and channel_id={chat_id} '
+                            f'and post_id={post_id} '
     )
     return res.is_successful
 
@@ -200,13 +210,14 @@ async def updating_posts_and_schedule(
             ...
         # putting observation tasks for post into the schedule
         if need_planning :
-            if await add_post_tasks_in_schedule(db=db, chat_id=chat_id, post_id=pst, uploading_tasks=uploading_tasks) :
+            if await add_post_tasks_in_schedule(db=db, client=client, chat_id=chat_id, post_id=pst, uploading_tasks=uploading_tasks) :
                 # updating the <is_planned> flag for the post, in case the scheduling was completed successfully
                 await turn_on_is_planned_flag(db=db, chat_id=chat_id, post_id=pst)
     return
 
 
 async def posts_update(client: Client, is_first: bool = False) -> bool :
+    logger.info('<posts_update> was run.')
     # open database connection
     db: Database = Database(settings.database_connection)
     if not db.is_connected :
@@ -232,13 +243,13 @@ async def posts_update(client: Client, is_first: bool = False) -> bool :
             if need_update_posts :
                 # creating a list of dropped posts in database (putting label about delete post from Telegram)
                 dropping_posts = list(set(db_posts.keys()) - set(tg_posts.keys()))
-                logger.info(f'total posts to dropping: {len(dropping_posts)} from channel id [{ch}] title [{title}]')
+                logger.info(f'Total posts to dropping: {len(dropping_posts)} for channel channel_id[{ch}] title[{title}]')
                 # dropping selected posts and canceling scheduled tasks
                 for pst in dropping_posts :
                     await set_post_drop_time(db=db, chat_id=ch, post_id=pst)
                 # creating a list of post to add or update and add scheduled tasks to the schedule database
                 update_posts = list(set(tg_posts.keys()) - set(db_planned_posts))
-                logger.info(f'channel id[{ch}] title[{title}] - number of posts for add '
+                logger.info(f'Channel channel_id[{ch}] title[{title}] - number of posts for add '
                             f'to scheduler: {len(update_posts)}')
                 # adding and updating selected posts in the database and the schedule
                 await updating_posts_and_schedule(

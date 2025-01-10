@@ -1,7 +1,5 @@
-from app_types import DBTaskPlan
+
 from logger import logger
-
-
 logger.debug('Loading <processing> module')
 
 from datetime import datetime
@@ -12,11 +10,11 @@ from scheduler import main_schedule
 from channel import channels_update
 from post import posts_update
 from config_py import settings
+from app_types import DBTaskPlan
 
+from task import post_day_observation, get_tasks_to_upload
 
-
-# def tick1(number):
-#     print(f'Tick! The time of number {number} is: {datetime.now()}')
+TaskType = DBTaskPlan
 
 
 async def create_update_channel_schedule(client: Client) :
@@ -52,19 +50,43 @@ async def create_update_post_schedule(client: Client) :
     return True
 
 
-async def create_task_schedule() :
-    task_for_run: dict[int, DBTaskPlan] = main_schedule.get_tasks()
-    # async for tsk in task_for_run.key
+async def upload_tasks_in_pipeline(client: Client, tasks: list[TaskType]) -> bool :
+    try :
+        for task in tasks:
+            main_schedule.add_job(
+                func=post_day_observation,
+                kwargs={'client': client, 'task': task},
+                trigger='cron',
+                start_date = task.planned_at
+            )
+    except Exception as e:
+        logger.error(f'Error: {e}')
+        return False
+
+    return True
+
+
+async def create_task_schedule(client: Client) :
+    # open database connection
+    db: Database = Database(settings.database_connection)
+    if not db.is_connected :
+        return False
+
+    # reading all post tasks that have not been completed yet
+    tasks_to_upload: list[TaskType] = await get_tasks_to_upload(db=db)
+
+    return upload_tasks_in_pipeline(client=client, tasks=tasks_to_upload)
 
 
 
 async def create_processing_schedule(client: Client) -> bool :
+    logger.info('<create_processing_schedule> was run.')
     main_schedule.scheduler.pause()
     if await create_update_channel_schedule(client=client) :
         logger.info(f'Channels update schedule was creating successful.')
         if await create_update_post_schedule(client=client) :
             logger.info(f'Posts update schedule was creating successful.')
-            if await create_task_schedule() :
+            if await create_task_schedule(client=client) :
                 logger.info(f'The creation of a task schedule for posts observation was successful.')
             else :
                 logger.error(f'Couldn\'t create task schedule for posts observation...')

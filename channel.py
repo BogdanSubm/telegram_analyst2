@@ -59,9 +59,9 @@ async def turn_off_channel(db: Database, off_channel: list[int], db_channels: di
         if res.is_successful :
             # TODO: Выключить все задачи запланированные по каналу
 
-            logger.info(f'The channel was turned off: id[{ch}] title[{db_channels[ch]}]')
+            logger.info(f'The channel channel_id[{ch}] title[{db_channels[ch]}] was turned off.')
         else :
-            logger.info(f'Сouldn\'t turn off the channel: id[{ch}] title_in_database[{db_channels[ch]}]')
+            logger.info(f'Сouldn\'t turn off the channel channel_id[{ch}] title_in_database[{db_channels[ch]}]')
 
 
 async def get_channel_username(channel: Chat) -> str :
@@ -71,7 +71,7 @@ async def get_channel_username(channel: Chat) -> str :
         for user in channel.usernames :
             if user.active :
                 return user.username
-    logger.info(f'Couldn\'t get the <username> of the channel: id[{channel.id}] title[{channel.title}].')
+    logger.info(f'Couldn\'t get the <username> of the channel channel_id[{channel.id}] title[{channel.title}].')
     return ''
 
 
@@ -135,15 +135,16 @@ async def channel_title_update(db: Database, check_list: list[int], db_channels:
                 condition_statement=f'id={ch}'
             )
             if res.is_successful :
-                logger.info(f'The channel title has been updated: id[{ch}] old title [{db_channels[ch]}] -> '
+                logger.info(f'The channel title has been updated channel_id[{ch}] old title[{db_channels[ch]}] -> '
                             f'new title[{tg_channels[ch].title}]')
             else :
-                logger.info(f'Сouldn\'t update channel name: id[{ch}] title_in_database[{db_channels[ch]}] '
+                logger.info(f'Сouldn\'t update channel name channel_id[{ch}] title_in_database[{db_channels[ch]}] '
                             f'actual_title_in_Telegram[{tg_channels[ch].title}]')
 
 
 async def channels_update(client: Client, is_first: bool = False) -> bool :
     # open database connection
+    logger.info('<channels_update> was run.')
     db: Database = Database(settings.database_connection)
     if not db.is_connected :
         return False
@@ -170,13 +171,13 @@ async def channels_update(client: Client, is_first: bool = False) -> bool :
         if need_update_channels_list :
             # creating a list of channels to turn off in database
             off_channel = list(set(db_channels.keys()) - set(tg_channels.keys()))
-            logger.info(f'channels turn off: {off_channel}')
+            logger.info(f'Channels turn off: {off_channel}')
             # turning off selected channels
             await turn_off_channel(db=db, off_channel=off_channel, db_channels=db_channels)
 
             # creating a list of channels to adding into database
             add_channels = list(set(tg_channels.keys()) - set(db_channels.keys()))
-            logger.info(f'channels adding: {add_channels}')
+            logger.info(f'Channels adding: {add_channels}')
             # adding selected channels to the database
             await adding_channel(db=db, client=client, add_channels=add_channels, tg_channels=tg_channels)
 
@@ -185,7 +186,7 @@ async def channels_update(client: Client, is_first: bool = False) -> bool :
         else :
             check_list = db_channels.keys()
 
-        logger.info(f'channels title updating: {check_list}')
+        logger.info(f'Channels title updating: {check_list}')
         # updating the channel title if necessary (...or other params)
         await channel_title_update(db=db, check_list=check_list, db_channels=db_channels, tg_channels=tg_channels)
 
