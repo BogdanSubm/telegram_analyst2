@@ -63,6 +63,8 @@ async def update_post_and_media_frames(db: Database, client: Client, task: TaskT
         logger.info(f'<No comments> status for the post_id[{msg.id}] channel_id[{msg.chat.id}] title[{msg.chat.title}]')
     # except FloodWait as e:
     #     await asyncio.sleep(e.value)
+    if post_comments is None :
+        post_comments = 0
 
     post_reactions = await get_post_reactions(msg)
     posts_hist_record = DBPostHist(

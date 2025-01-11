@@ -109,7 +109,7 @@ async def command_handler(client: Client, message: Message) :
                 case AppStatusType.PROCESS_RUN :
 
                     # starting after crash the app
-                    if (await posts_update(client=client)
+                    if (await posts_update(client=client, is_first=True)
                             and await tasks_update(client=client)
                             and await create_processing_schedule(client=client)) :
                         app_status.status = AppStatusType.PROCESS_RUN
