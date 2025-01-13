@@ -1,6 +1,8 @@
 # Handlers module
 
 from logger import logger
+from scheduler import main_schedule
+
 logger.debug('Loading <handlers> module')
 
 from pyrogram import Client, filters
@@ -19,14 +21,16 @@ from processing import create_processing_schedule
 class BotCommand(enum.StrEnum) :
     INSTALL = '/install'
     START = '/start'
-    # UPDATE = '/update'
+    RESTART = '/restart'
+    STAT = '/stat'
     HELP = '/help'
     STOP = '/stop'
     DEBUG = '/debug'
 
 command_list = [ _[1:] for _ in [BotCommand.INSTALL,
                                  BotCommand.START,
-                                 # BotCommand.UPDATE,
+                                 BotCommand.RESTART,
+                                 BotCommand.STAT,
                                  BotCommand.HELP,
                                  BotCommand.STOP,
                                  BotCommand.DEBUG]]
@@ -105,22 +109,41 @@ async def command_handler(client: Client, message: Message) :
                     else :
                         await message.reply('Error when starting processing...')
 
-
                 case AppStatusType.PROCESS_RUN :
+                    ...
+                    # # starting after crash the app
+                    # if (await posts_update(client=client, is_first=True)
+                    #         and await tasks_update(client=client)
+                    #         and await create_processing_schedule(client=client)) :
+                    #     app_status.status = AppStatusType.PROCESS_RUN
+                    #     await message.reply('Processing has been started successful (starting after crash the app).')
+                    # else :
+                    #     await message.reply('Error when starting processing...')
 
-                    # starting after crash the app
+                case AppStatusType.NOT_RUNNING:
+
+                    logger.info('The first launch, installing is required.')
+                    await message.reply('Sorry, the first launch, installing is required...')
+
+        case BotCommand.RESTART :
+            match app_status.status :
+
+                case AppStatusType.PROCESS_RUN:
+                    # restarting app during normal working
+                    main_schedule.restart()
                     if (await posts_update(client=client, is_first=True)
                             and await tasks_update(client=client)
                             and await create_processing_schedule(client=client)) :
                         app_status.status = AppStatusType.PROCESS_RUN
-                        await message.reply('Processing has been started successful (starting after crash the app).')
+                        await message.reply('Processing has been restarted successful.')
                     else :
-                        await message.reply('Error when starting processing...')
+                        await message.reply('Error when restarting processing...')
 
-                case AppStatusType.NOT_RUNNING:
+        case BotCommand.STAT :
+            match app_status.status :
 
-                    logger.info('The first launch, resetting is required.')
-                    await message.reply('Sorry, the first launch, resetting is required...')
+                case AppStatusType.PROCESS_RUN:
+                    await message.reply(main_schedule.print_stat())
 
         case BotCommand.HELP :
 
@@ -128,7 +151,8 @@ async def command_handler(client: Client, message: Message) :
                 f'Available commands:\n'
                 f'  {BotCommand.INSTALL} - 1-th run (reset all database\'s tables)\n'
                 f'  {BotCommand.START} - starting processing\n'
-                # f'  {BotCommand.UPDATE} - updating the list of processing channels\n'
+                f'  {BotCommand.RESTART} - updating the post list and tasks schedule\n'
+                f'  {BotCommand.STAT} - show how many tasks are on the schedule\n'
                 f'  {BotCommand.HELP} - list of commands\n'
                 f'  {BotCommand.STOP} - stopping processing\n'
             )
@@ -142,7 +166,11 @@ async def command_handler(client: Client, message: Message) :
         case BotCommand.DEBUG :
             await run_debug(client)
 
+        # case _:
+        #     await message.reply('Unknown command, type [\\help] for more information...')
 
+
+# @Client.on_message()
 
 # @Client.on_message(is_processing_filter & filters.chat(chats=channels.lst))
 # @Client.on_message(is_processing_filter & from_channel_filter & ~filters.service)

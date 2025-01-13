@@ -231,6 +231,7 @@ async def updating_posts_and_schedule(
 
 async def posts_update(client: Client, is_first: bool = False) -> bool :
     logger.info('<posts_update> was run.')
+    time_start = datetime.now()
     # open database connection
     db: Database = Database(settings.database_connection)
     if not db.is_connected :
@@ -241,6 +242,7 @@ async def posts_update(client: Client, is_first: bool = False) -> bool :
         db_channels = await get_db_channels_dict(db=db)
 
         for ch, title in db_channels.items() :
+            logger.info(f'Reading posts of the channel channel_id[{ch}] title[{title}]')
             async with asyncio.TaskGroup() as tg :
                 task1 = tg.create_task(get_tg_channel_posts_dict(client=client, chat_id=ch))
                 task2 = tg.create_task(get_db_channel_posts_list(db=db, chat_id=ch))
@@ -275,10 +277,10 @@ async def posts_update(client: Client, is_first: bool = False) -> bool :
                     uploading_tasks=not is_first
                 )
 
-        # await tasks_update(db=db, client=client)
-
     except AppDBError as e:
         logger.error(f'Error: {e}')
         return False
 
+    logger.info(f'<posts_update> was completed, '
+                f'execution time - {(datetime.now() - time_start).total_seconds()} seconds.')
     return True

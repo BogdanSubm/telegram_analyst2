@@ -59,7 +59,7 @@ async def update_post_and_media_frames(db: Database, client: Client, task: TaskT
             chat_id=msg.chat.id,
             message_id=msg.id
         )
-    except BadRequest as e :
+    except BadRequest :
         logger.info(f'<No comments> status for the post_id[{msg.id}] channel_id[{msg.chat.id}] title[{msg.chat.title}]')
     # except FloodWait as e:
     #     await asyncio.sleep(e.value)
@@ -150,8 +150,17 @@ async def post_day_observation(db: Database|None, client: Client, task: TaskType
     except AppDBError:
         pass
 
-    msg = await normalizer.run(client.get_messages, chat_id=task.channel_id, message_ids=task.post_id)
-    if msg :
+    msg: Message = await normalizer.run(client.get_messages, chat_id=task.channel_id, message_ids=task.post_id)
+    if msg.empty :
+        # the Telegram message has been deleted
+        await set_post_drop_time(db=db, chat_id=task.channel_id, post_id=task.post_id)
+        await set_task_status_is_completed(
+            db=db,
+            chat_id=task.channel_id,
+            post_id=task.post_id,
+            observation_day=task.observation_day
+        )
+    else :
         if await update_post_and_media_frames(db=db, client=client, task=task, msg=msg) :
             await set_task_status_is_completed(
                 db=db,
@@ -159,10 +168,6 @@ async def post_day_observation(db: Database|None, client: Client, task: TaskType
                 post_id=task.post_id,
                 observation_day=task.observation_day
             )
-    else :
-        # the Telegram message has been deleted
-        await set_post_drop_time(db=db, chat_id=task.channel_id, post_id=task.post_id)
-
     return True
 
 
@@ -225,5 +230,6 @@ async def tasks_update(client: Client) :
         logger.error(f'Error: {e}')
         return False
 
-    logger.info(f'The task execution time <tasks_update> was {(datetime.now() - time_start).total_seconds()} seconds.')
+    logger.info(f'<tasks_update> was completed, '
+                f'execution time - {(datetime.now() - time_start).total_seconds()} seconds.')
     return True

@@ -28,7 +28,7 @@ class ColoredFormatter(logging.Formatter):
 
 def _init_logging() -> str :
     prefix_name= settings.logging.file_name_prefix
-    path = settings.logging.path
+    path = settings.logging.logs_folder_path
     max_num_files = settings.logging.max_num_log_files
 
     new_log_name = (prefix_name + datetime.now().strftime('%Y-%m-%d_%H-%M') + '.log')
@@ -59,19 +59,36 @@ def _init_logging() -> str :
     return str(os.path.join(path, new_log_name))
 
 
-def get_logger(level: int = logging.DEBUG, to_file: bool = True) -> logging.Logger:
+def set_logger(level: int = logging.DEBUG, to_file: bool = True) :
     global logger
     if not logger:  # only one copy of the registrar at a time
         logger = logging.getLogger('tgan2_logger')
         logger.setLevel(level)
 
-        if to_file :
-            handler = logging.FileHandler(_init_logging())
-            formatter = logging.Formatter(format_line)
-        else :
-            handler = logging.StreamHandler()
-            formatter = ColoredFormatter()
-
+        # configuring logger output to the console
+        handler = logging.StreamHandler()
+        formatter = ColoredFormatter()
         handler.setFormatter(formatter)
         logger.addHandler(handler)
-    return logger
+
+        if to_file :
+            # adding configuring logger output to the file (if specified)
+            handler = logging.FileHandler(_init_logging(), encoding='utf-16')
+            formatter = logging.Formatter(format_line)
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+
+    elif to_file :
+        # changing the registration file when calling the function again
+        logger.removeHandler(logger.handlers[-1])
+        handler = logging.FileHandler(_init_logging(), encoding='utf-16')
+        formatter = logging.Formatter(format_line)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+    return
+
+
+set_logger(level=settings.logging.level_logging, to_file=settings.logging.to_file)
+logger.debug('Loading <config_py> module')
+logger.debug('Loading <logger> module')

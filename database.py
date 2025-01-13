@@ -129,7 +129,7 @@ async def run_debug(client: Client) :
 
     main_schedule.print_tasks()
 
-
+    # logger.info(await client.get_messages(chat_id=-1001720833502, message_ids=50555555))
 
     # await channels_update(client, is_first=False)
     # await get_tg_channel_posts_dict(client=client, chat_id=-1001720833502)

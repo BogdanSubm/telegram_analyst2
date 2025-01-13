@@ -7,6 +7,7 @@ import asyncio
 from pyrogram.errors import FloodWait
 from typing import Any
 from datetime import datetime
+from pyrogram.errors import BadRequest
 
 from config_py import settings
 # global normalizer
@@ -52,6 +53,9 @@ class Normalizer :
                 self.__delta =  60 / self.__calls_per_minute
                 logger.debug(f'Set acceptable number of calls per minute to: {self.__delta}')
                 continue
+
+            except BadRequest as e:
+                raise BadRequest()
 
             except Exception as e:
                 logger.error(f'Telegram error: {e}')
