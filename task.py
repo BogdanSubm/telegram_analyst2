@@ -29,8 +29,9 @@ async def post_is_dropped(db: Database, chat_id: int, post_id: int) -> bool:
                             f'and drop_time notnull '
     )
     if not res.is_successful :
-        raise AppDBError(f'Database operation error: couldn\'t read dropped status of the post post_id[{post_id}] '
-                         f'channel_id[{chat_id}].')
+        return False
+        # raise AppDBError(f'Database operation error: couldn\'t read dropped status of the post post_id[{post_id}] '
+        #                  f'channel_id[{chat_id}].')
     return len(res.value) == 1
 
 
@@ -143,43 +144,38 @@ async def post_day_observation(db: Database|None, client: Client, task: TaskType
         db: Database = Database(settings.database_connection)
         if not db.is_connected :
             return False
-    try :
-        if await post_is_dropped(db=db, chat_id=task.channel_id, post_id=task.post_id) :
-            # the post in database have value in <drop_time> field
-            return True
-    except AppDBError:
-        pass
 
-    msg: Message = await normalizer.run(client.get_messages, chat_id=task.channel_id, message_ids=task.post_id)
-    if msg.empty :
-        # the Telegram message has been deleted
-        await set_post_drop_time(db=db, chat_id=task.channel_id, post_id=task.post_id)
-        await set_task_status_is_completed(
-            db=db,
-            chat_id=task.channel_id,
-            post_id=task.post_id,
-            observation_day=task.observation_day
-        )
-    else :
-        if await update_post_and_media_frames(db=db, client=client, task=task, msg=msg) :
-            await set_task_status_is_completed(
-                db=db,
-                chat_id=task.channel_id,
-                post_id=task.post_id,
-                observation_day=task.observation_day
-            )
+    if not await post_is_dropped(db=db, chat_id=task.channel_id, post_id=task.post_id) :
+        msg: Message = await normalizer.run(client.get_messages, chat_id=task.channel_id, message_ids=task.post_id)
+        if msg.empty :
+            # the Telegram message has been deleted
+            await set_post_drop_time(db=db, chat_id=task.channel_id, post_id=task.post_id)
+        else :
+            if not await update_post_and_media_frames(db=db, client=client, task=task, msg=msg) :
+                return False
+
+    await set_task_status_is_completed(
+        db=db,
+        chat_id=task.channel_id,
+        post_id=task.post_id,
+        observation_day=task.observation_day
+    )
     return True
 
 
-async def get_tasks_to_launch(db: Database) -> list[TaskType]:
-    current_time = datetime.now()
+async def get_tasks_to_launch(db: Database, is_first: bool = False) -> list[TaskType]:
+
+    threshold_time = (
+            datetime.now() +
+            (1 if is_first else -1) * timedelta(seconds=settings.schedules.delay_for_tasks_update)
+    )
 
     tasks_to_launch: list[TaskType] = []
     res = db.read_rows(
         table_name='task_plan',
         columns_statement='*',
         condition_statement=f'True '
-                f'and planned_at <= \'{current_time+timedelta(seconds=settings.schedules.delay_for_tasks_update)}\' '
+                            f'and planned_at <= \'{threshold_time}\' '
                             f'and completed_at isnull '
     )
     if not res.is_successful :
@@ -211,18 +207,13 @@ async def get_tasks_to_upload(db: Database) -> list[TaskType]:
     return tasks_to_upload
 
 
-async def tasks_update(client: Client) :
+async def tasks_update(db:Database, client: Client, is_first: bool = False) :
     logger.info('<tasks_update> was run.')
     time_start = datetime.now()
-    # open database connection
-    db: Database = Database(settings.database_connection)
-    if not db.is_connected :
-        return False
-
     try :
         # reading all the tasks that should have already been completed
-        tasks_to_launch : list[TaskType] = await get_tasks_to_launch(db=db)
-
+        tasks_to_launch : list[TaskType] = await get_tasks_to_launch(db=db, is_first=is_first)
+        logger.info(f'   to update: {len(tasks_to_launch)} tasks')
         for task in tasks_to_launch :
             await post_day_observation(db=db, client=client, task=task)
 

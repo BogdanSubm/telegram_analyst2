@@ -10,7 +10,7 @@ from config_py import settings
 # a simple class for reading data with the necessary anti-flood pause
 class Chunk :
 
-    def __init__(self, normalizer: Normalizer, chunk_size: int = settings.analyst.chunk_size_for_read_ops):
+    def __init__(self, normalizer: Normalizer, chunk_size: int = settings.analyst.chunk_size_for_tg_ops):
         self.__chunk_size = chunk_size
         self.__chunk_filled = 0
         self.__normalizer = normalizer

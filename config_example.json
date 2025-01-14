@@ -31,7 +31,7 @@
         "numb_channels_process" : 500,
         "size_text_fragment_for_save" : 128,
         "chunk_size_for_db_ops": 1000,
-        "chunk_size_for_read_ops": 100,
+        "chunk_size_for_tg_ops": 100,
         "media_group_post_ordering_base" : 1,
         "channel_selection_filter" : [
             -1001150636847, -1001999600137, -1001407735984, -1001387835436, -1001434942369, -1001247460025, -1001269328727,

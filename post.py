@@ -16,7 +16,7 @@ from chunk import Chunk, chunks
 from exceptions import AppDBError
 
 from channel import get_db_channels_dict
-from task import set_post_drop_time, post_day_observation
+from task import tasks_update, set_post_drop_time, post_day_observation
 from scheduler import main_schedule
 
 TaskType = DBTaskPlan
@@ -162,7 +162,7 @@ async def add_post_tasks_in_schedule(db:Database, client:Client, chat_id: int, p
         if ((base_time + timedelta(days=day) >= current_time)
                 or (day == settings.schedules.post_observation_days[-1])):
             # adding a task to the schedule if the scheduled time is greater than or equal to the current time
-            # or it is the last day of all observation days.
+            # or if it is the last day of all observation days.
             task_records.append(
                 DBTaskPlan(
                     channel_id=chat_id,
@@ -281,6 +281,14 @@ async def posts_update(client: Client, is_first: bool = False) -> bool :
         logger.error(f'Error: {e}')
         return False
 
+    await tasks_update(db=db, client=client, is_first=is_first)
+
+    if not is_first :
+        # notification of successful operation of the application
+        await client.send_message('me', 'I\'m online...')
+        await client.send_message('me', main_schedule.print_stat())
+
     logger.info(f'<posts_update> was completed, '
                 f'execution time - {(datetime.now() - time_start).total_seconds()} seconds.')
+
     return True

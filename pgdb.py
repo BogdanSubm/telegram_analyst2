@@ -60,7 +60,7 @@ class Database :
             logger.error(f'An error occurred while connecting database: {e}')
             self.is_connected = False
 
-    def __del__(self):
+    def __del__(self) :
         self.close_connection()
 
 
