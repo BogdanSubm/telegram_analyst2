@@ -9,6 +9,7 @@ from pyrogram import Client
 
 from pgdb import Database, Row, Rows
 from config_py import settings
+from scheduler import main_schedule
 
 
 async def recreate_tables() -> bool:
@@ -122,12 +123,33 @@ async def recreate_tables() -> bool:
 # from chunk import Chunk, chunks
 
 # from post import get_tg_channel_posts_dict, posts_update, get_db_channel_posts_list
+# import gc
+#
+# async def memory_info() :
+#     main_schedule.print_memory()
+#     logger.info(f'Count of objets in generations before collecting: {gc.get_count()}')
+#     logger.info(f'Collected objects by gc: {gc.collect()}')
+#     logger.info(f'Count of objets in generations after collecting: {gc.get_count()}')
+#     main_schedule.print_memory()
 
-from scheduler import main_schedule
+
+    # for i in range(3):
+    #     all_objs = gc.get_objects(generation=i)
+    #     logger.info(f'Total objects of the {i} generation: {len(all_objs)}, including :')
+    #     logger.info(all_objs[:10])
+
+
 
 async def run_debug(client: Client) :
 
     main_schedule.print_tasks()
+    await client.send_message('me', main_schedule.print_memory())
+
+
+    # await memory_info()
+
+
+    # await print_used_memory(client=client)
 
     # logger.info(await client.get_messages(chat_id=-1001720833502, message_ids=50555555))
 

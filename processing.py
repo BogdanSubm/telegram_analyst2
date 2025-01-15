@@ -5,6 +5,7 @@ logger.debug('Loading <processing> module')
 
 from pyrogram import Client
 from datetime import datetime
+import psutil
 
 from pgdb import Database
 from config_py import settings
@@ -16,6 +17,12 @@ from post import posts_update, upload_tasks_in_pipeline
 from scheduler import main_schedule
 
 TaskType = DBTaskPlan
+
+
+# async def print_used_memory(client: Client) :
+#     report = f'Used memory: {psutil.Process().memory_info().rss / 1024 ** 2:.2f} Mb'
+#     logger.info(report)
+#     await client.send_message('me', report)
 
 
 async def update_log_file() :

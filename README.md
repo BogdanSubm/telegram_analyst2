@@ -22,6 +22,6 @@
 
 _Note: This project uses `.venv`_
 
-## Как это работает:
+## How it works (in Russian):
 
  

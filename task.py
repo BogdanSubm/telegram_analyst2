@@ -91,9 +91,6 @@ async def update_post_and_media_frames(db: Database, client: Client, task: TaskT
             media_frames = await normalizer.run(client.get_media_group, chat_id=msg.chat.id, message_id=msg.id)
             if len(media_frames) > 0 :
 
-                # TODO: check below code
-                # media_frames.sort(key=lambda f: f.id)
-
                 for i, fr in enumerate(media_frames, start=settings.analyst.media_group_post_ordering_base) :
                     media_records.append(
                         DBMediaGroup(

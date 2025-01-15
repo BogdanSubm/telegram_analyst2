@@ -97,7 +97,6 @@ class DBMediaGroup(Row) :       # record in <post_hist> table
     post_views: int     # number of views
     reposts: int    # the number of reposts of this post
 
-
 class DBTaskPlan(Row) :       # record in <task_plan> table
     channel_id: int     # channel id  - part of the group foreign key
     post_id: int     # post id      - part of the group foreign key

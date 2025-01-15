@@ -19,6 +19,7 @@ from channel import get_db_channels_dict
 from task import tasks_update, set_post_drop_time, post_day_observation
 from scheduler import main_schedule
 
+
 TaskType = DBTaskPlan
 
 
@@ -57,7 +58,7 @@ async def get_tg_channel_posts_dict(client: Client, chat_id:int) -> dict[int, Me
         else :
             break
 
-        await chunk.one_reading()   # anti flood reading pause
+        await chunk.one_reading()   # antiflood reading pause
 
     logger.debug(f'readed {rd} messages, added {len(messages)} messages:')
     if len(messages) > 0 :
@@ -286,7 +287,7 @@ async def posts_update(client: Client, is_first: bool = False) -> bool :
     if not is_first :
         # notification of successful operation of the application
         await client.send_message('me', 'I\'m online...')
-        await client.send_message('me', main_schedule.print_stat())
+        await client.send_message('me', f'{main_schedule.print_stat()}\n{main_schedule.print_memory()}')
 
     logger.info(f'<posts_update> was completed, '
                 f'execution time - {(datetime.now() - time_start).total_seconds()} seconds.')

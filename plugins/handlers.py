@@ -1,7 +1,7 @@
 # Handlers module
 
 from logger import logger
-from scheduler import main_schedule
+from scheduler import main_schedule, AppScheduler
 
 logger.debug('Loading <handlers> module')
 
@@ -14,9 +14,7 @@ from app_status import app_status, running_status, AppStatusType
 
 from channel import channels_update
 from post import posts_update
-from task import tasks_update
-from processing import create_processing_schedule
-
+from processing import create_processing_schedule #, print_used_memory
 
 class BotCommand(enum.StrEnum) :
     INSTALL = '/install'
@@ -94,18 +92,19 @@ async def command_handler(client: Client, message: Message) :
                             and await create_processing_schedule(client=client)) :
                         app_status.status = AppStatusType.PROCESS_RUN
                         await message.reply('The processing was started successfully for the first time.')
-                        await message.reply(main_schedule.print_stat())
+                        await message.reply(f'{main_schedule.print_stat()}\n{main_schedule.print_memory()}')
                     else :
                         await message.reply('Error when starting processing...')
 
                 case AppStatusType.APP_STOPPED | AppStatusType.PROCESS_RUN :
 
                     # starting after stopping from the app or after crash the app
+                    await message.reply('Preparation and uploading data. Please wait...')
                     if (await posts_update(client=client, is_first=True)
                             and await create_processing_schedule(client=client)) :
                         app_status.status = AppStatusType.PROCESS_RUN
                         await message.reply('Processing has been started successful.')
-                        await message.reply(main_schedule.print_stat())
+                        await message.reply(f'{main_schedule.print_stat()}\n{main_schedule.print_memory()}')
                     else :
                         await message.reply('Error when starting processing...')
 
@@ -130,11 +129,13 @@ async def command_handler(client: Client, message: Message) :
 
                 case AppStatusType.PROCESS_RUN:
                     # restarting app during normal working
-                    main_schedule.restart()
+                    main_schedule.reset()
+                    await message.reply('Preparation, please wait...')
                     if (await posts_update(client=client, is_first=True)
                             and await create_processing_schedule(client=client)) :
                         app_status.status = AppStatusType.PROCESS_RUN
                         await message.reply('Processing has been restarted successful.')
+                        await message.reply(f'{main_schedule.print_stat()}\n{main_schedule.print_memory()}')
                     else :
                         await message.reply('Error when restarting processing...')
 
@@ -142,7 +143,7 @@ async def command_handler(client: Client, message: Message) :
             match app_status.status :
 
                 case AppStatusType.PROCESS_RUN:
-                    await message.reply(main_schedule.print_stat())
+                    await message.reply(f'{main_schedule.print_stat()}\n{main_schedule.print_memory()}')
 
         case BotCommand.HELP :
 

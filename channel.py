@@ -39,7 +39,8 @@ async def get_tg_channels_dict(client: Client, selected_channels: list[int]) -> 
     tg_channels = {}
     async for dialog in client.get_dialogs() :
         if (dialog.chat.type == ChatType.CHANNEL and
-                ((dialog.chat.id in selected_channels) if isinstance(selected_channels, list) else True)):
+                ((dialog.chat.id in selected_channels) if (isinstance(selected_channels, list)
+                                                           and len(selected_channels) > 0) else True)):
                 # if dialog.chat.type in (ChatType.SUPERGROUP, ChatType.CHANNEL) :
             tg_channels[dialog.chat.id] = dialog.chat
             logger.debug(f'channel id: {dialog.chat.id} channel title: {dialog.chat.title}')
