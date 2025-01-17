@@ -160,26 +160,18 @@ async def post_day_observation(db: Database|None, client: Client, task: TaskType
     return True
 
 
-async def get_tasks_to_launch(db: Database, is_first: bool = False) -> list[TaskType]:
-
-    threshold_time = (
-            datetime.now() +
-            (1 if is_first else -1) * timedelta(seconds=settings.schedules.delay_for_tasks_update)
-    )
-
+async def get_tasks(db: Database, threshold_time: datetime = None) -> list[TaskType] :
     tasks_to_launch: list[TaskType] = []
     res = db.read_rows(
         table_name='task_plan',
         columns_statement='*',
         condition_statement=f'True '
-                            f'and planned_at <= \'{threshold_time}\' '
-                            f'and completed_at isnull '
+                            f'and completed_at isnull ' +
+                            (f'and planned_at <= \'{threshold_time}\'' if isinstance(threshold_time, datetime) else ''),
+        order_by_statement='planned_at ASC'
     )
     if not res.is_successful :
         raise AppDBError(f'Database operation error: couldn\'t read list of planned task.')
-
-    # elif len(res.value) > 0 :
-    #     tasks_to_launch: list[TaskType] = res.value
 
     elif len(res.value) > 0:
         tasks_to_launch = [TaskType(*val) for val in res.value]
@@ -187,21 +179,19 @@ async def get_tasks_to_launch(db: Database, is_first: bool = False) -> list[Task
     return tasks_to_launch
 
 
-async def get_tasks_to_upload(db: Database) -> list[TaskType]:
-    tasks_to_upload = []
-    res = db.read_rows(
-        table_name='task_plan',
-        columns_statement='*',
-        condition_statement=f'True '
-                            f'and completed_at isnull '
-    )
-    if not res.is_successful :
-        raise AppDBError(f'Database operation error: couldn\'t read list of planned task for uploading.')
+async def get_tasks_to_launch(db: Database, is_first: bool = False) -> list[TaskType] :
+    threshold_time = datetime.now()
+    tasks_to_launch: list[TaskType] = await get_tasks(db=db, threshold_time=threshold_time)
+    if is_first :
+        #  we need to reserve time for the tasks that we will be performing forcibly
+        count_tasks = len(tasks_to_launch)
+        if count_tasks > 0 :
+            reserved_time = count_tasks * settings.schedules.min_duration_observation_task
+            threshold_time = datetime.now() + timedelta(seconds=reserved_time)
+            tasks_to_launch = await get_tasks(db=db, threshold_time=threshold_time)
+            logger.info(f'the reserved time for the forced start of tasks is: {reserved_time} seconds')
 
-    elif len(res.value) > 0 :
-        tasks_to_upload = [TaskType(*val) for val in res.value]
-
-    return tasks_to_upload
+    return tasks_to_launch
 
 
 async def tasks_update(db:Database, client: Client, is_first: bool = False) :
@@ -212,7 +202,11 @@ async def tasks_update(db:Database, client: Client, is_first: bool = False) :
         tasks_to_launch : list[TaskType] = await get_tasks_to_launch(db=db, is_first=is_first)
         logger.info(f'   to update: {len(tasks_to_launch)} tasks')
         for task in tasks_to_launch :
-            await post_day_observation(db=db, client=client, task=task)
+            if (task.planned_at <
+                    datetime.now() + timedelta(seconds=(settings.schedules.min_duration_observation_task * 10))) :
+                await post_day_observation(db=db, client=client, task=task)
+            else :
+                break
 
     except AppDBError as e :
         logger.error(f'Error: {e}')

@@ -5,14 +5,13 @@ logger.debug('Loading <post> module')
 import asyncio
 from datetime import datetime, timedelta
 from pyrogram import Client
-from pyrogram.types import Message, Chat, Username
-# from pyrogram.enums import MessageMediaType, ParseMode, ChatType
+from pyrogram.types import Message
 
-from pgdb import Database, Row, Rows
+from pgdb import Database
 from config_py import settings
 from normalizer import normalizer
 from app_types import media_types_encoder, DBPost, DBTaskPlan
-from chunk import Chunk, chunks
+from chunk import Chunk
 from exceptions import AppDBError
 
 from channel import get_db_channels_dict
@@ -142,7 +141,13 @@ async def upload_tasks_in_pipeline(client: Client, tasks: list[TaskType]) -> boo
     return True
 
 
-async def add_post_tasks_in_schedule(db:Database, client:Client, chat_id: int, post_id: int, uploading_tasks: bool) -> bool :
+async def add_post_tasks_in_schedule(
+        db:Database,
+        client:Client,
+        chat_id: int,
+        post_id: int,
+        uploading_tasks: bool
+) -> bool :
     res = db.read_rows(
         table_name='post',
         columns_statement='creation_time',
@@ -284,12 +289,12 @@ async def posts_update(client: Client, is_first: bool = False) -> bool :
 
     await tasks_update(db=db, client=client, is_first=is_first)
 
+    logger.info(f'<posts_update> was completed, '
+                f'execution time - {(datetime.now() - time_start).total_seconds()} seconds.')
+
     if not is_first :
         # notification of successful operation of the application
         await client.send_message('me', 'I\'m online...')
         await client.send_message('me', f'{main_schedule.print_stat()}\n{main_schedule.print_memory()}')
-
-    logger.info(f'<posts_update> was completed, '
-                f'execution time - {(datetime.now() - time_start).total_seconds()} seconds.')
 
     return True

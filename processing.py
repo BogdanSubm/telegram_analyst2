@@ -1,20 +1,19 @@
-# import logging
 
 from logger import set_logger, logger
 logger.debug('Loading <processing> module')
 
 from pyrogram import Client
 from datetime import datetime
-import psutil
 
 from pgdb import Database
 from config_py import settings
 from app_types import DBTaskPlan
 
 from channel import channels_update
-from task import get_tasks_to_upload
+from task import get_tasks
 from post import posts_update, upload_tasks_in_pipeline
 from scheduler import main_schedule
+from exceptions import AppDBError
 
 TaskType = DBTaskPlan
 
@@ -80,9 +79,13 @@ async def create_task_schedule(client: Client) :
     db: Database = Database(settings.database_connection)
     if not db.is_connected :
         return False
+    try :
+        # reading all post tasks that have not been completed yet
+        tasks_to_upload: list[TaskType] = await get_tasks(db=db)
 
-    # reading all post tasks that have not been completed yet
-    tasks_to_upload: list[TaskType] = await get_tasks_to_upload(db=db)
+    except AppDBError as e :
+        logger.error(f'Error: {e}')
+        return False
 
     return await upload_tasks_in_pipeline(client=client, tasks=tasks_to_upload)
 

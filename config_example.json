@@ -59,6 +59,6 @@
             "seconds": [0, 0, 0, 0, 0]
         },
         "post_observation_days": [1, 2, 3, 7, 14],
-        "delay_for_tasks_update": 120
+        "min_duration_observation_task ": 1.2
     }
 }

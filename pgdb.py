@@ -3,7 +3,7 @@
 #   Class name: Database
 #   Methods:
 #       run_query(table_name, params, several) - main method
-#       read_rows(table_name, columns_statement, condition_statement, limit)
+#       read_rows(table_name, columns_statement, condition_statement, order_by_statement, limit)
 #       search_table(table_name)
 #       create_table(table_name, columns_statement, overwrite)
 #       insert_rows(table_name, values)
@@ -100,12 +100,15 @@ class Database :
                   table_name: str,
                   columns_statement: str = '*',
                   condition_statement='',
+                  order_by_statement='',
                   limit: int = 0) -> DBQueryResult :
         ''' A simple line reader '''
         if table_name :
             query = f'SELECT {columns_statement} FROM {table_name}'
             if condition_statement :
                 query += f' WHERE {condition_statement}'
+            if order_by_statement :
+                query += f' ORDER BY {order_by_statement}'
             if limit > 0 :
                 query += f' LIMIT {limit}'
             return self.run_query(query)

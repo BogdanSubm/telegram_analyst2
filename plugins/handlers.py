@@ -133,7 +133,6 @@ async def command_handler(client: Client, message: Message) :
                     await message.reply('Preparation, please wait...')
                     if (await posts_update(client=client, is_first=True)
                             and await create_processing_schedule(client=client)) :
-                        app_status.status = AppStatusType.PROCESS_RUN
                         await message.reply('Processing has been restarted successful.')
                         await message.reply(f'{main_schedule.print_stat()}\n{main_schedule.print_memory()}')
                     else :

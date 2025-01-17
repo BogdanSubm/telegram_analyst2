@@ -83,8 +83,8 @@ class ScheduleSettings(BaseModel) :
     update_channels: ScheduleUpdateChannels = Field(description='task start time for channels')
     update_posts: ScheduleUpdatePosts = Field(description='task start time for channels')
     post_observation_days: list[PositiveInt] = Field(description='list of all observation day numbers')
-    delay_for_tasks_update: PositiveInt = Field(default=300, description='the maximum time (seconds) allowed for '
-                                                                         'the task of <tasks_update> ')
+    min_duration_observation_task: PositiveInt = Field(default=1, description='minimum duration of the observation '
+                                                                              'task in seconds')
 
 class AppSettings(BaseModel):
     telegram: TelegramSettings = Field(description='telegram settings')
