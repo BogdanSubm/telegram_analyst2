@@ -54,6 +54,11 @@ class DBChannelHist(Row) :       # record in <channel_hist> table
     msgs_count: int     # number of messages of the channel
 
 
+class DBChannelPlan(Row) :       # record in <channel_plan> table
+    planned_at: datetime   # scheduled task start time
+    completed_at: datetime | None  # the time of the actual completion of the task
+
+
 class DBPost(Row) :       # record in <post> table
     channel_id: int     # channel id  - part of the group primary key
     post_id: int     # post id      - part of the group primary key

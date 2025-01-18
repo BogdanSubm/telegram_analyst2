@@ -14,7 +14,7 @@ from config_py import settings
 from normalizer import normalizer
 from exceptions import AppDBError
 
-from app_types import DBChannel, DBChannelHist
+from app_types import DBChannel, DBChannelHist, DBChannelPlan
 
 
 # def tick():
@@ -25,11 +25,15 @@ async def get_db_channels_dict(db: Database) -> dict :
     # reading all working channels from the database
     res = db.read_rows(
         table_name='channel',
+        # columns_statement='id, title, turn_on_time',
         columns_statement='id, title',
         condition_statement='turn_off_time isnull'
     )
     if not res.is_successful :
         raise AppDBError('Database operation error: couldn\'t read channel list.')
+
+    # # creating a dict. with channels: <key> - id, <value> : dict with keys: 'title' and 'turn_on_time'
+    # return {v[0]:dict(title=v[1], turn_on_time=v[2]) for v in res.value}
 
     return {_[0]:_[1] for _ in res.value}     # creating a dict. with channels: <key> - id, <value> - title
 
@@ -58,8 +62,7 @@ async def turn_off_channel(db: Database, off_channel: list[int], db_channels: di
             condition_statement=f'id={ch}'
         )
         if res.is_successful :
-            # TODO: Выключить все задачи запланированные по каналу
-
+            # after turning off, the channel and its posts will stop updating
             logger.info(f'The channel channel_id[{ch}] title[{db_channels[ch]}] was turned off.')
         else :
             logger.info(f'Сouldn\'t turn off the channel channel_id[{ch}] title_in_database[{db_channels[ch]}]')
@@ -100,19 +103,26 @@ async def adding_channel(db: Database, client: Client, add_channels: list[int], 
         raise AppDBError('Database operation error: couldn\'t add new channels to the database.')
 
 
-async def update_channel_hist(db: Database, client: Client, db_channels: dict[int, str], tg_channels: dict[int, Chat]) :
+async def update_channel_hist(
+        db: Database,
+        client: Client,
+        db_channels: dict[int, str],
+        tg_channels: dict[int, Chat],
+        update_time: datetime
+) :
     # adding new records to the <channel_hist>
     # await normalizer.run()
 
     add_hist = []
     for ch in db_channels.keys() :
         channel = tg_channels[ch]
-        upload_time = datetime.now()
+        # upload_time = datetime.now()
         msgs_count = await normalizer.run(client.get_chat_history_count, channel.id)
         add_hist.append(
             DBChannelHist(
                 channel_id=channel.id,
-                update_time=upload_time,
+                # update_time=upload_time
+                update_time=update_time,
                 subscribers=channel.members_count,
                 msgs_count=msgs_count
             )
@@ -124,6 +134,8 @@ async def update_channel_hist(db: Database, client: Client, db_channels: dict[in
         logger.info(f'The history records of {res.value} channels have been successfully added to the database.')
     else :
         raise AppDBError('Database operation error: couldn\'t add new history records of channels to the database.')
+
+    return True
 
 
 async def channel_title_update(db: Database, check_list: list[int], db_channels: dict, tg_channels: dict[int, Chat]) :
@@ -143,6 +155,57 @@ async def channel_title_update(db: Database, check_list: list[int], db_channels:
                             f'actual_title_in_Telegram[{tg_channels[ch].title}]')
 
 
+async def get_channel_plan_day(db:Database) -> datetime:
+    res = db.read_rows(
+        table_name='channel_plan',
+        columns_statement='planned_at',
+        condition_statement=f'True '
+                            f'and completed_at isnull '
+    )
+    if not res.is_successful or len(res.value) == 0:
+        raise AppDBError(f'Couldn\'t read or missing the day of the channel update plan.')
+
+    return res.value[0][0]
+
+
+async def update_channel_plan(db:Database, current_time_plan: datetime = None) -> bool :
+    current_time = datetime.now()
+    if current_time_plan :
+        res = db.update_data(
+            table_name='channel_plan',
+            set_statement=f'completed_at=\'{current_time}\'',
+            condition_statement=f'True '
+                                f'and planned_at=\'{current_time_plan}\' '
+                                f'and completed_at isnull '
+        )
+        if not res.is_successful :
+            raise AppDBError(f'Failed to record the status of a completed scheduled task for channels update.')
+
+        current_time = current_time_plan + timedelta(days=1)
+
+    new_time_plan = datetime(
+        year=current_time.year,
+        month=current_time.month,
+        day=current_time.day,
+        hour=settings.schedules.update_channels.hour,
+        minute=settings.schedules.update_channels.minute,
+        second=settings.schedules.update_channels.second)
+
+    res = db.insert_rows(
+        table_name='channel_plan',
+        values=(
+            DBChannelPlan(
+                planned_at=new_time_plan,
+                completed_at=None
+            ),
+        )
+    )
+    if not res.is_successful :
+        raise AppDBError(f'Couldn\'t add a new day to the channels update plan.')
+
+    return True
+
+
 async def channels_update(client: Client, is_first: bool = False) -> bool :
     # open database connection
     logger.info('<channels_update> was run.')
@@ -152,35 +215,23 @@ async def channels_update(client: Client, is_first: bool = False) -> bool :
         return False
 
     try:
-        # reading all working channels from the database into the dictionary: <key> - id, <value> - title
-        db_channels = await get_db_channels_dict(db=db)
+        async with asyncio.TaskGroup() as tg :
+            task1 = tg.create_task(get_tg_channels_dict(
+                client=client,
+                selected_channels=settings.analyst.channel_selection_filter)
+            )
+            task2 = tg.create_task(get_db_channels_dict(db=db))
 
-        #      FOR DEBUG
-        # filtered_channels = (
-        #  -1001150636847, -1001999600137, -1001407735984, -1001387835436, -1001434942369, -1001247460025, -1001269328727,
-        #  -1001119907458, -1002173481054, -1001140040257, -1001720833502, -1001786987818, -1001039255739, -1001684696497,
-        #  -1001375960541, -1001684146975, -1001646511362, -1001852630630, -1002075081423, -1001863771680, -1001507734288,
-        #  -1001164672298, -1001555979359, -1001654432419, -1001713271750, -1002061202990, -1001329188755, -1001648137205,
-        #  -1002017388853, -1002160874756, -1001513592482, -1001178238337, -1001601022378, -1001756387595, -1001408836166,
-        #  -1001638862576, -1001610037070, -1001580761898, -1001920826299, -1001373128436, -1001490689117, -1001618735800,
-        #  -1001117681513, -1001573892445, -1002243195124, -1001542820616, -1001195518065, -1001937140822, -1001286050825,
-        #  -1001788488602, -1001052741705, -1001439011975, -1001451120475, -1001081286887, -1001682401578, -1001160069287,
-        #  -1001702796681, -1002100634882, -1001983260268, -1002125857137, -1001544737980, -1001576767771, -1001850344604,
-        #  -1001903546969, -1001417960831, -1002146883464, -1001533350227, -1001752641311, -1001503786901, -1001212864285,
-        #  -1001217403746, -1001638304350, -1001556054484, -1001414693404, -1001375051700, -1001217426310, -1001972927572,
-        #  -1001860277066, -1001155412393, -1001223651429, -1001240501786, -1001336087232, -1001526752830, -1002329275862,
-        #  -1002479064953, -1001265941657, -1001567847129, -1002312481032, -1001586330290, -1001354117866, -1001706328181,
-        #  -1001625951959, -1002376985514, -1001633110548, -1001315746544, -1001314600216, -1001576490999, -1002038340948,
-        #  -1001066811392, -1001181269908, -1001437741565, -1002188344885, -1002319527378, -1001621747845
+        tg_channels = task1.result()
+        db_channels = task2.result()
+
+        # # reading all working channels from the database into the dictionary: <key> - id, <value> - title
+        # db_channels = await get_db_channels_dict(db=db)
+        # # reading all or only filtered (by config.json) subscribed channels in Telegram
+        # tg_channels = await get_tg_channels_dict(
+        #     client=client,
+        #     selected_channels=settings.analyst.channel_selection_filter
         # )
-        # tg_channels = await get_tg_channels_dict(client=client, selected_channels=filtered_channels)
-
-        #   FOR PROD
-        # reading all or only filtered (by config.json) subscribed channels in Telegram
-        tg_channels = await get_tg_channels_dict(
-            client=client,
-            selected_channels=settings.analyst.channel_selection_filter
-        )
 
         # we check the differences between the database and telegram subscriptions
         need_update_channels_list = len(set(db_channels.keys()) ^ set(tg_channels.keys())) > 0
@@ -203,14 +254,26 @@ async def channels_update(client: Client, is_first: bool = False) -> bool :
         else :
             check_list = db_channels.keys()
 
-        logger.info(f'Channels title updating: {check_list}')
+        logger.info(f'Channels title updating check.')
         # updating the channel title if necessary (...or other params)
         await channel_title_update(db=db, check_list=check_list, db_channels=db_channels, tg_channels=tg_channels)
 
-        if not is_first :
-            if need_update_channels_list :
-                db_channels = await get_db_channels_dict(db=db)
-            await update_channel_hist(db=db, client=client, db_channels=db_channels, tg_channels=tg_channels)
+        if is_first :
+            # creating the first task for channels update
+            await update_channel_plan(db=db)
+        else :
+            update_time = await get_channel_plan_day(db=db)
+            if update_time and datetime.now() >= update_time :
+                if need_update_channels_list :
+                    db_channels = await get_db_channels_dict(db=db)
+                if await update_channel_hist(
+                        db=db,
+                        client=client,
+                        db_channels=db_channels,
+                        tg_channels=tg_channels,
+                        update_time=update_time
+                ) :
+                    await update_channel_plan(db=db, current_time_plan=update_time)
 
     except AppDBError as e:
         logger.error(f'Error: {e}')

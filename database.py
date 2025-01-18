@@ -41,6 +41,13 @@ async def recreate_tables() -> bool:
                                 ''',
                            overwrite=True) : return False
 
+    if not db.create_table(table_name='channel_plan',
+                           columns_statement='''
+                                planned_at timestamp NOT NULL,
+                                completed_at timestamp NULL
+                                ''',
+                           overwrite=True) : return False
+
     if not db.create_table(table_name='post',
                            columns_statement='''
                                 channel_id int8 NOT NULL,
@@ -106,7 +113,6 @@ async def recreate_tables() -> bool:
                                 CONSTRAINT task_fk FOREIGN KEY (channel_id, post_id)
                                     REFERENCES public.post(channel_id, post_id) ON UPDATE CASCADE
                                 ''',
-                                                            # started_at timestamp NULL,
                            overwrite=True) : return False
 
     return True
