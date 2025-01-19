@@ -53,6 +53,10 @@ async def create_update_channel_schedule(client: Client) :
     return True
 
 
+async def channels_posts_update(client: Client) -> bool:
+    return await channels_update(client=client) and await posts_update(client=client)
+
+
 async def create_update_post_schedule(client: Client) :
     hours: list = settings.schedules.update_posts.hours
     minutes: list = settings.schedules.update_posts.minutes
@@ -63,7 +67,7 @@ async def create_update_post_schedule(client: Client) :
 
     for i, h in enumerate(hours) :
         main_schedule.add_job(
-            func=posts_update,
+            func=channels_posts_update,
             kwargs={'client': client},
             trigger='cron',
             hour=h,

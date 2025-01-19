@@ -100,8 +100,14 @@ async def command_handler(client: Client, message: Message) :
 
                     # starting after stopping from the app or after crash the app
                     await message.reply('Preparation and uploading data. Please wait...')
-                    if (await posts_update(client=client, is_first=True)
-                            and await create_processing_schedule(client=client)) :
+
+                    # if (await posts_update(client=client, is_first=True)
+                    #         and await create_processing_schedule(client=client)) :
+                    #
+                    if (await channels_update(client=client)
+                           and await posts_update(client=client, is_first=True)
+                           and await create_processing_schedule(client=client)) :
+
                         app_status.status = AppStatusType.PROCESS_RUN
                         await message.reply('Processing has been started successful.')
                         await message.reply(f'{main_schedule.print_stat()}\n{main_schedule.print_memory()}')
