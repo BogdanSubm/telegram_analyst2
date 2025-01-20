@@ -25,4 +25,4 @@ _Note: This project uses `.venv`_
 ## How it works (in Russian):
 [How it works (in Russian)](docs/How_it_works.md)
 
- 
+[How it works (in Russian) Google doc](https://docs.google.com/document/d/1oyME8felY9CLCRHY1TccnelgImf6SMs4yv9Oh2cx9vc/edit?usp=sharing)
