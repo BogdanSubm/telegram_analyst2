@@ -208,7 +208,7 @@ async def update_channel_plan(db:Database, current_time_plan: datetime = None) -
 
 async def channels_update(client: Client, is_first: bool = False) -> bool :
     # open database connection
-    logger.info('<channels_update> was run.')
+    logger.info('<channels_update> is running.')
     time_start = datetime.now()
     db: Database = Database(settings.database_connection)
     if not db.is_connected :
@@ -262,6 +262,7 @@ async def channels_update(client: Client, is_first: bool = False) -> bool :
             # creating the first task for channels update
             await update_channel_plan(db=db)
         else :
+            logger.info(f'Channels history updating.')
             update_time = await get_channel_plan_day(db=db)
             if update_time and datetime.now() >= update_time :
                 if need_update_channels_list :
@@ -280,5 +281,5 @@ async def channels_update(client: Client, is_first: bool = False) -> bool :
         return False
 
     logger.info(f'<channels_update> was completed, '
-                f'execution time - {(datetime.now() - time_start).total_seconds()} seconds.')
+                f'execution time - {(datetime.now() - time_start).total_seconds():.2f} seconds.')
     return True

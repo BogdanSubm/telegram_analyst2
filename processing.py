@@ -95,7 +95,7 @@ async def create_task_schedule(client: Client) :
 
 
 async def create_processing_schedule(client: Client) -> bool :
-    logger.info('<create_processing_schedule> was run.')
+    logger.info('<create_processing_schedule> is running.')
     time_start = datetime.now()
     main_schedule.pause()
 
@@ -126,5 +126,5 @@ async def create_processing_schedule(client: Client) -> bool :
 
     main_schedule.resume()
     logger.info(f'<create_processing_schedule> was completed, '
-                f'execution time - {(datetime.now() - time_start).total_seconds()} seconds.')
+                f'execution time - {(datetime.now() - time_start).total_seconds():.2f} seconds.')
     return True

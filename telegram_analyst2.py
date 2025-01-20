@@ -8,7 +8,7 @@ from config_py import settings
 from logger import logger
 logger.debug('Loading and starting main module <telegram_analyst2>')
 
-from app_status import app_status, running_status, AppStatusType
+from app_status import running_status
 from scheduler import main_schedule
 
 

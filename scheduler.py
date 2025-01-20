@@ -31,11 +31,8 @@ class AppScheduler() :
     def resume(self) :
         self.__scheduler.resume()
 
-    # def restart(self) :
-    #     self.stop()
-    #     self.__scheduler = AsyncIOScheduler()
-    #     self.__not_started = True
-    #     self.start()
+    def get_jobs(self) :
+        return self.__scheduler.get_jobs()
 
     def reset(self) :
         self.pause()

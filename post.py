@@ -236,13 +236,14 @@ async def updating_posts_and_schedule(
 
 
 async def posts_update(client: Client, is_first: bool = False) -> bool :
-    logger.info('<posts_update> was run.')
+    logger.info('<posts_update> is running.')
     time_start = datetime.now()
     # open database connection
     db: Database = Database(settings.database_connection)
     if not db.is_connected :
         return False
 
+    count_new_posts = 0
     try:
         # reading all working channels from the database into the dictionary: <key> - id, <value> - title
         db_channels = await get_db_channels_dict(db=db)
@@ -270,6 +271,7 @@ async def posts_update(client: Client, is_first: bool = False) -> bool :
                     await set_post_drop_time(db=db, chat_id=ch, post_id=pst)
                 # creating a list of post to add or update and add scheduled tasks to the schedule database
                 update_posts = list(set(tg_posts.keys()) - set(db_planned_posts))
+                count_new_posts += len(update_posts)
                 logger.info(f'Channel channel_id[{ch}] title[{title}] - number of posts for add '
                             f'to scheduler: {len(update_posts)}')
                 # adding and updating selected posts in the database and the schedule
@@ -289,8 +291,8 @@ async def posts_update(client: Client, is_first: bool = False) -> bool :
 
     await tasks_update(db=db, client=client, is_first=is_first)
 
-    logger.info(f'<posts_update> was completed, '
-                f'execution time - {(datetime.now() - time_start).total_seconds()} seconds.')
+    logger.info(f'<posts_update> was completed, {count_new_posts} new posts added, '
+                f'execution time - {(datetime.now() - time_start).total_seconds():.2f} seconds.')
 
     if not is_first :
         # notification of successful operation of the application

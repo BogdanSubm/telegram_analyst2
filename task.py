@@ -195,7 +195,7 @@ async def get_tasks_to_launch(db: Database, is_first: bool = False) -> list[Task
 
 
 async def tasks_update(db:Database, client: Client, is_first: bool = False) :
-    logger.info('<tasks_update> was run.')
+    logger.info('<tasks_update> is running.')
     time_start = datetime.now()
     try :
         # reading all the tasks that should have already been completed
@@ -213,5 +213,5 @@ async def tasks_update(db:Database, client: Client, is_first: bool = False) :
         return False
 
     logger.info(f'<tasks_update> was completed, '
-                f'execution time - {(datetime.now() - time_start).total_seconds()} seconds.')
+                f'execution time - {(datetime.now() - time_start).total_seconds():.2f} seconds.')
     return True

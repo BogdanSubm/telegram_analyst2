@@ -96,14 +96,10 @@ async def command_handler(client: Client, message: Message) :
                     else :
                         await message.reply('Error when starting processing...')
 
-                case AppStatusType.APP_STOPPED | AppStatusType.PROCESS_RUN :
+                case AppStatusType.APP_STOPPED :
 
                     # starting after stopping from the app or after crash the app
                     await message.reply('Preparation and uploading data. Please wait...')
-
-                    # if (await posts_update(client=client, is_first=True)
-                    #         and await create_processing_schedule(client=client)) :
-                    #
                     if (await channels_update(client=client)
                            and await posts_update(client=client, is_first=True)
                            and await create_processing_schedule(client=client)) :
@@ -114,16 +110,23 @@ async def command_handler(client: Client, message: Message) :
                     else :
                         await message.reply('Error when starting processing...')
 
-                # case AppStatusType.PROCESS_RUN :
-                #
-                    # # starting after crash the app
-                    # if (await posts_update(client=client, is_first=True)
-                    #         and await tasks_update(client=client)
-                    #         and await create_processing_schedule(client=client)) :
-                    #     app_status.status = AppStatusType.PROCESS_RUN
-                    #     await message.reply('Processing has been started successful (starting after crash the app).')
-                    # else :
-                    #     await message.reply('Error when starting processing...')
+                case AppStatusType.PROCESS_RUN :
+
+                    # starting after stopping from the app or after crash the app
+                    if len(main_schedule.get_jobs()) > 0 :
+                        await message.reply('Processing already started.')
+
+                    else :
+                        await message.reply('Preparation and uploading data. Please wait...')
+                        if (await channels_update(client=client)
+                                and await posts_update(client=client, is_first=True)
+                                and await create_processing_schedule(client=client)) :
+
+                            app_status.status = AppStatusType.PROCESS_RUN
+                            await message.reply('Processing has been started successful.')
+                            await message.reply(f'{main_schedule.print_stat()}\n{main_schedule.print_memory()}')
+                        else :
+                            await message.reply('Error when starting processing...')
 
                 case AppStatusType.NOT_RUNNING:
 
