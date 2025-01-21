@@ -1,6 +1,34 @@
 """
 main module
 """
+import sys, psutil
+
+# checking that only one instance of app is running
+process_name = 'telegram_analyst2'
+# for proc in psutil.process_iter():
+#     print(proc.name()) #, proc.username()) #, proc.cmdline())
+#     if process_name in proc.name() :
+#         sys.exit(0)
+# sys.exit(0)
+
+# for pid in psutil.pids() :
+#     p = psutil.Process(pid)
+#     if "python" in p.name() and len(p.cmdline()) > 1 and process_name in p.cmdline()[1] :
+#         print(p.name(), p.cmdline())
+# sys.exit(0)
+
+import os
+
+for p in psutil.process_iter():
+    if p.name().startswith('python'):
+        if len(p.cmdline())>1 and process_name in p.cmdline()[1] :#and p.pid != os.getpid():
+            print(f'{format(process_name)} / {p.pid} / {os.getpid()}')
+while True:
+    if input():
+        break
+
+sys.exit(0)
+
 import asyncio
 from pyrogram import Client
 
@@ -12,11 +40,12 @@ from app_status import running_status
 from scheduler import main_schedule
 
 
+
 plugins = dict(root=settings.pyrogram.plugins.root,
                include=settings.pyrogram.plugins.include,
                exclude=settings.pyrogram.plugins.exclude)
 
-app = Client(name='telegram_analyst2',
+app = Client(name=process_name,
              api_id=settings.telegram.api_id,
              api_hash=settings.telegram.api_hash,
              plugins=plugins)
