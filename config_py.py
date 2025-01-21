@@ -1,9 +1,6 @@
-import pathlib
-from email.policy import default
 from datetime import datetime
-from typing import List, Union, Annotated
+from pathlib import Path, PurePath
 from pydantic import BaseModel, Field, PositiveInt, computed_field
-import argparse
 import logging
 
 logger_level = dict(NOTSET=logging.NOTSET,
@@ -95,7 +92,10 @@ class AppSettings(BaseModel):
     schedules: ScheduleSettings = Field(description='schedules settings')
 
 
-_settings_json_string = pathlib.Path('config.json').read_text()
+dir_name = PurePath(__file__).parent
+
+
+_settings_json_string = Path(PurePath.joinpath(dir_name, 'config.json')).read_text()
 settings = AppSettings.model_validate_json(_settings_json_string)
 
 

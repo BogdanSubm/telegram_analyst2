@@ -1,9 +1,9 @@
-from config_py import AppSettings
-
 if __name__ != '__main__' :
     from logger import logger
     logger.debug('Loading <app_status> module')
 
+from pathlib import Path, PurePath
+from config_py import dir_name
 
 import enum
 class AppStatusType(enum.StrEnum) :
@@ -40,8 +40,9 @@ class AppStatus() :
 
     def __init__(self):
         self.__status = ''
+        self.__filename = PurePath.joinpath(dir_name, '.app_status')
         try :
-            with open('.app_status', 'r') as f :
+            with open(self.__filename, 'r') as f :
                 # if the status-file exists, this is not the first launch of the application
                 # we are checking its integrity
                 self.__status = f.read()
@@ -49,7 +50,7 @@ class AppStatus() :
         except FileNotFoundError as e :
             # the flag-file is missing - this is the first launch of the application
             try:
-                with open('.app_status', 'w') as f :
+                with open(self.__filename, 'w') as f :
                     self.__status = AppStatusType.NOT_RUNNING
                     f.write(self.__status)
             except Exception as e :
@@ -62,7 +63,7 @@ class AppStatus() :
     @status.setter
     def status(self, new_status: AppStatusType):
         try :
-            with open('.app_status', 'w') as f :
+            with open(self.__filename, 'w') as f :
                 self.__status = new_status
                 f.write(self.__status)
         except Exception as e :
