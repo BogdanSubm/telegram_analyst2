@@ -5,29 +5,13 @@ import sys, psutil
 
 # checking that only one instance of app is running
 process_name = 'telegram_analyst2'
-# for proc in psutil.process_iter():
-#     print(proc.name()) #, proc.username()) #, proc.cmdline())
-#     if process_name in proc.name() :
-#         sys.exit(0)
-# sys.exit(0)
-
-# for pid in psutil.pids() :
-#     p = psutil.Process(pid)
-#     if "python" in p.name() and len(p.cmdline()) > 1 and process_name in p.cmdline()[1] :
-#         print(p.name(), p.cmdline())
-# sys.exit(0)
-
-import os
-
+is_running = 0
 for p in psutil.process_iter():
-    if p.name().startswith('python'):
-        if len(p.cmdline())>1 and process_name in p.cmdline()[1] :#and p.pid != os.getpid():
-            print(f'{format(process_name)} / {p.pid} / {os.getpid()}')
-while True:
-    if input():
-        break
+    if p.name().startswith('python') and len(p.cmdline())>1 and process_name in p.cmdline()[1] :
+        is_running += 1
+        if is_running > 2 :
+            sys.exit(0)
 
-sys.exit(0)
 
 import asyncio
 from pyrogram import Client
