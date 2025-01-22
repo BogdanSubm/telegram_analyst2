@@ -89,7 +89,7 @@ async def adding_channel(db: Database, client: Client, add_channels: list[int], 
                 id=channel.id,
                 username=await get_channel_username(channel),
                 title=channel.title,
-                category='DA',
+                category='?',
                 creation_time=(await client.get_messages(chat_id=channel.id, message_ids=1)).date,
                 turn_on_time=datetime.now(),
                 turn_off_time=None
