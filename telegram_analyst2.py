@@ -9,7 +9,7 @@ is_running = 0
 for p in psutil.process_iter():
     if p.name().startswith('python') and len(p.cmdline())>1 and process_name in p.cmdline()[1] :
         is_running += 1
-        if is_running > 2 :
+        if is_running > 1 :
             sys.exit(0)
 
 
